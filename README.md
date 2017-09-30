@@ -37,7 +37,7 @@ Optional:
 
 I recommend using [Anaconda](https://www.continuum.io/what-is-anaconda) for the installation of both Python and most of the dependencies.
 
-Once Anaconda has been installed, I would suggest creating a new environment for working with `interpies`. If working with SEG-Y files is not required (so you will not be able to load the `segy_io` module), you could start with this command.
+Once Anaconda has been installed, I would suggest creating a new environment for working with `interpies`. If working with SEG-Y files is not required (so you will not be able to load the `segy_io` module), you could start with this command:
 
 `conda create --name interpies gdal scikit-learn scikit-image matplotlib ipykernel python=3.6`
 
@@ -49,11 +49,11 @@ On **Windows**, if the version does not match, simply download the binaries for 
 
 And that should do. If you encounter other problems with this part of the installation, please refer to the [rasterio installation](https://mapbox.github.io/rasterio/installation.html).
 
-If you need SEG-Y files, then you need `obspy`, which, at the time of writing, would conflict with matplotlib 2.0. So installing obspy would limit matplotlib to version 1.5.3. Use:
+If you need SEG-Y files, then you need `obspy`, which, at the time of writing, would conflict with `matplotlib 2.0`. So installing `obspy` would limit `matplotlib` to version 1.5.3. Use:
 
 `conda create --name interpies gdal scikit-learn scikit-image matplotlib obspy ipykernel python=3.6`
 
-Optionally, you could also install `geopandas`, which is great for reading line data. And don't forget to install `ipykernel` to run the notebooks in the `interpies` environment.
+Optionally, you could also install `geopandas`, which is great for reading line data from geophysical surveys. And don't forget to install `ipykernel` to run the notebooks in the `interpies` environment.
 
 
 #### interpies
@@ -75,4 +75,4 @@ Please see the notebooks.
 
 ## Documentation
 
-Under construction [website](http://geophysicslabs.com/)
+Under construction.
