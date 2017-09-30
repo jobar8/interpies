@@ -70,7 +70,18 @@ Then install it using the following command in the repository directory:
 
 ## Examples
 
-Please see the notebooks.
+The basic usage of `interpies` is to load gridded data into a *grid* object, which then gives access to various methods for transforming and displaying the data. So, loading magnetic data and creating a map with the grid is simply done with:
+
+```
+import interpies 
+grid1 = interpies.open(r'..\data\brtpgrd.gxf')
+grid1.show()
+```
+
+![alt text](/doc/mag_survey_example.png)
+
+
+For more advanced examples, please see the notebooks.
 
 
 ## Documentation
