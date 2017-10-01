@@ -5,6 +5,14 @@ Python installation file.
 """
 from setuptools import setup
 
+try:
+    from pypandoc import convert
+    read_md = lambda f: convert(f, 'rst')
+except ImportError:
+    print("warning: pypandoc module not found, could not convert Markdown to RST")
+    read_md = lambda f: open(f, 'r').read()
+
+
 CLASSIFIERS = ['Development Status :: 4 - Beta',
                'Intended Audience :: Science/Research',
                'Natural Language :: English',
@@ -35,5 +43,6 @@ setup(
     author='Joseph Barraud',
     author_email='joseph.barraud@geophysicslabs.com',
     description='A collection of functions for reading, displaying, transforming and analyzing geophysical data.',
+    long_description=read_md('README.md'),
     keywords=['geophysics raster gdal gravimetry magnetometry seismic']
 )

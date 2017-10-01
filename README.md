@@ -58,13 +58,15 @@ Optionally, you could also install `geopandas`, which is great for reading line 
 
 #### interpies
 
-Installing `interpies` itself is done manually for the moment (hopefully a pip and a conda packages should come soon).
+Installing `interpies` itself is done directly with:
 
-First, clone the current repository:
+`pip install interpies`
+
+Or you could do it manually by first cloning the current repository:
 
 `$ git clone https://github.com/jobar8/interpies.git`
 
-Then install it using the following command in the repository directory:
+Then run the following command in the repository directory:
 
 `$ python setup.py install`
 
