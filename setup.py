@@ -7,11 +7,14 @@ from setuptools import setup
 
 try:
     from pypandoc import convert
-    read_md = lambda f: convert(f, 'rst')
-except ImportError:
-    print("warning: pypandoc module not found, could not convert Markdown to RST")
-    read_md = lambda f: open(f, 'r').read()
-
+    long_description = convert('README.md', 'rst')
+    long_description = long_description.replace("\r","")
+except (IOError, ImportError):
+    print("Pandoc not found. Long_description conversion failure.")
+    # pandoc is not installed, fallback to using raw contents
+    import io
+    with io.open('README.md', encoding="utf-8") as f:
+        long_description = f.read()
 
 CLASSIFIERS = ['Development Status :: 4 - Beta',
                'Intended Audience :: Science/Research',
@@ -28,7 +31,7 @@ CLASSIFIERS = ['Development Status :: 4 - Beta',
 
 setup(
     name='interpies',
-    version='0.1.0',
+    version='0.1.1',
     packages=['interpies'],
     install_requires=[
         'numpy',
@@ -43,6 +46,7 @@ setup(
     author='Joseph Barraud',
     author_email='joseph.barraud@geophysicslabs.com',
     description='A collection of functions for reading, displaying, transforming and analyzing geophysical data.',
-    long_description=read_md('README.md'),
-    keywords=['geophysics raster gdal gravimetry magnetometry seismic']
+    long_description=long_description,
+    keywords=['geophysics raster gdal gravimetry magnetometry seismic'],
+    classifiers=CLASSIFIERS
 )

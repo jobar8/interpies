@@ -80,7 +80,7 @@ grid1 = interpies.open(r'..\data\brtpgrd.gxf')
 grid1.show()
 ```
 
-![alt text](/doc/mag_survey_example.png)
+![image of magnetic data](/doc/mag_survey_example.png)
 
 
 For more advanced examples, please see the notebooks.
