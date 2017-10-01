@@ -28,7 +28,7 @@ CLASSIFIERS = ['Development Status :: 4 - Beta',
 
 setup(
     name='interpies',
-    version='0.1',
+    version='0.1.0',
     packages=['interpies'],
     install_requires=[
         'numpy',
