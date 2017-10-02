@@ -44,7 +44,7 @@ class grid(object):
         # load data array
         self.data = data.copy()
         # read provided transform or create default one
-        if transform:
+        if transform is not None:
             self.transform = transform
         else:
             self.transform = rasterio.transform.from_origin(0, 0, 100, 100)
@@ -53,19 +53,22 @@ class grid(object):
         self.name = name
         self.filename = filename
         self.nrows, self.ncols = data.shape
-        self.cellsize = transform[0]
-        self.crs = crs
+        self.cellsize = self.transform[0]  # requires rasterio > 1.0
+        if crs is not None:
+            self.crs = crs
+        else:
+            self.crs = 'Unknown'
         
         # lower left corner (pixel centre)
-        self.xll, self.yll = rasterio.transform.xy(transform, self.nrows-1, 0,
-                                                  offset='center')
+        self.xll, self.yll = rasterio.transform.xy(self.transform, 
+                                                   self.nrows-1, 0,
+                                                   offset='center')
         
         # nodata value
         self.nodata = nodata_value
         # convert nodata values to nans
-        if nodata_value:
+        if nodata_value is not None:
             self.data[self.data == nodata_value] = np.nan
-            #self.data.mask = (data == nodata_value)
         
         # apply mask if present
         if mask is not None:
@@ -75,9 +78,13 @@ class grid(object):
         self.mask = np.isnan(self.data)
         self.saved_mask = self.mask
         self.masked = True
-        # rasterio `west, south, east, north` bounds
-        # matplotlib `left, right, left, top` extent
-        w, s, e, n = rasterio.transform.array_bounds(self.nrows, self.ncols, transform)
+        
+        # calculate extent in matplotlib sense
+        # matplotlib extent: `left, right, bottom, top` 
+        # rasterio bounds: `west, south, east, north` 
+        w, s, e, n = rasterio.transform.array_bounds(self.nrows, 
+                                                     self.ncols, 
+                                                     self.transform)
         self.extent = [w, e, s, n]
         
                                      
