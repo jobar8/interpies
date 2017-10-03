@@ -4,7 +4,9 @@
 Python installation file.
 """
 from setuptools import setup
+import re
 
+# convert README file
 try:
     from pypandoc import convert
     long_description = convert('README.md', 'rst')
@@ -15,6 +17,18 @@ except (IOError, ImportError):
     import io
     with io.open('README.md', encoding="utf-8") as f:
         long_description = f.read()
+
+# find VERSION
+version_file = 'interpies/__init__.py'
+
+with open(version_file, 'r') as f:
+    version_string = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
+                               f.read(), re.M)
+    
+if version_string is not None:
+    VERSION = version_string.group(1)
+else:
+    raise RuntimeError("Unable to find version string in %s." % (version_file,))
 
 CLASSIFIERS = ['Development Status :: 4 - Beta',
                'Intended Audience :: Science/Research',
@@ -31,7 +45,7 @@ CLASSIFIERS = ['Development Status :: 4 - Beta',
 
 setup(
     name='interpies',
-    version='0.1.1',
+    version=VERSION,
     packages=['interpies'],
     install_requires=[
         'numpy',
