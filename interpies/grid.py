@@ -120,7 +120,22 @@ class grid(object):
         return grid(data, dataset.transform, name=name,  
                     nodata_value=nodata_value, filename=dataset.name, crs=crs)
         
-        
+    def save(self,outputFile):
+        '''
+        Write grid data to file. The only format supported at the moment is Geotiff. 
+        '''
+        # create rasterio object
+        new_dataset = rasterio.open(outputFile, 'w', driver='GTiff',
+                             height=self.nrows, width=self.ncols,
+                             count=1, dtype=rasterio.dtypes.float64,
+                             crs=self.crs, transform=self.transform)
+        # write to file
+        new_dataset.write(self.data, 1)
+        # close file
+        new_dataset.close()
+        print('The grid was successfully saved to {}'.format(outputFile))
+
+
     def to_fatiando(self):
         '''
         Convert a grid to the fatiando "format" in which the (x,y) coordinates
@@ -415,8 +430,8 @@ class grid(object):
                                       cb_ticks=cb_ticks, nSigma=nSigma, 
                                       figsize=figsize, title=title, 
                                       origin='upper', **kwargs)
-         
-            
+
+
     ### Filters 
     def smooth(self, method='SG', deg=3, win=5, doEdges=True, sigma=1, **kwargs):
         '''Smoothing filters.
