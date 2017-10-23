@@ -171,12 +171,15 @@ def warp(inputFile, outputFile, xsize, ysize, dst_srs, src_srs=None,
     command = command + ' "{}" "{}"'.format(inputFile, outputFile)
     
     print('GDAL command\n------------\n'+command)
-    
+    print('\nOutput\n------')
+
     # Run the command
     try:
-        retMessage = subprocess.check_output(command,shell=False)
+        retMessage = subprocess.check_output(command, shell=False)
+        # remove 'b' letter at the beginning of the string
+        retMessage = retMessage.decode("utf-8")
     except subprocess.CalledProcessError as err:
-        retMessage = "ERROR. GDAL returned code {}.\n{}\n".format(err.returncode,err.output)
+        retMessage = "ERROR. GDAL returned code {}.\n{}\n".format(err.returncode, err.output.decode("utf-8"))
     
     return retMessage
 

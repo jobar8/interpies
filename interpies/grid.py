@@ -41,8 +41,9 @@ class grid(object):
             mask = copyFrom.mask
             crs = copyFrom.crs
         
-        # load data array
-        self.data = data.copy()
+        # load data array - the conversion to float allows the creation of masks with NaNs
+        self.data = data.astype(float)
+
         # read provided transform or create default one
         if transform is not None:
             self.transform = transform
@@ -88,7 +89,8 @@ class grid(object):
         self.extent = [w, e, s, n]
         
                                      
-    def from_dataset(dataset, crs=None, name=None, nodata_value=None):
+    def from_dataset(dataset, band=1, crs=None, name=None, nodata_value=None, 
+                     scale_factor=None):
         '''
         Create a new grid object from a rasterio dataset. 
         Used by interpies.open().
@@ -108,8 +110,14 @@ class grid(object):
             else:
                 # get a PROJ.4 string
                 crs = dataset.crs.to_string()
-            
-        return grid(dataset.read(1), dataset.transform, name=name,  
+        
+        # read the data from the specified band and apply scaling
+        if scale_factor is not None:
+            data = scale_factor * dataset.read(band)
+        else:
+            data = dataset.read(band)
+
+        return grid(data, dataset.transform, name=name,  
                     nodata_value=nodata_value, filename=dataset.name, crs=crs)
         
         
@@ -145,6 +153,7 @@ class grid(object):
         
         return grid(data_selection, new_transf, name=self.name+'_clip', nodata_value=self.nodata)
     
+
     def resample(self, sampling=2):
         '''
         Resample grid (from lower-left corner)
@@ -163,14 +172,29 @@ class grid(object):
         return grid(new_data, new_transf, name=self.name+'_res{}'.format(sampling),
                     nodata_value=self.nodata)
         
+
     def reproject(self, outputFile, src_srs=None, dst_srs=None, cellsize=None,
                   doClip=False, xmin=None, xmax=None, ymin=None, ymax=None, 
                   method='bilinear'):
         '''
         Project or reproject the data to a new coordinate system.
+
+        Parameters
+        ----------
+        src_srs : string
+            Input coordinate system. Can be specified with a EPSG code, i.e. 
+            "EPSG:4326" for WGS84.
+        dst_srs: string
+            Destination coordinate system.
+
         '''
         if src_srs is None:
-            src_srs = self.crs
+            if self.crs=='Unknown':
+                raise ValueError('The coordinate system of the input data ' 
+                                 'is undefined. Please set it up in the grid or '
+                                 'use the src_srs argument.')
+            else:
+                src_srs = self.crs
         if cellsize is None:
             cellsize = self.cellsize
         # call gdalwarp utility
@@ -184,7 +208,16 @@ class grid(object):
         dataset = rasterio.open(outputFile)
         return grid.from_dataset(dataset)
     
-        
+    
+    def scale(self, scale_factor):
+        '''
+        Multiply data with a number.
+        '''
+        # return scaled grid
+        return grid(scale_factor * self.data, self.transform, 
+                    name=self.name+'_scaled', nodata_value=self.nodata)
+
+
     def detrend(self, degree=1, sampling=4):
         '''
         Apply detrending to the grid. Trend is calculated with a resampled 
@@ -214,6 +247,7 @@ class grid(object):
         return grid(self.data - trend, self.transform, 
                     name=self.name+'_detrend', nodata_value=self.nodata)
         
+
     def fill_nodata(self, method=None):
         '''Simple filling algorithm to remove NaNs.
         '''
@@ -222,6 +256,7 @@ class grid(object):
         return grid(filled, self.transform, 
                     name=self.name+'_filled', nodata_value=self.nodata)
         
+
     def apply_mask(self, mask=None, inplace=False):
         '''Mask data with new mask or apply saved mask.
         '''
@@ -263,8 +298,7 @@ class grid(object):
         print('max = {}'.format(maximum))
 
 
-    ### Graphics 
-    
+    ### Graphics
     def show(self, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
               zf=10, azdeg=45, altdeg=45, dx=1, dy=1, fraction=1.5, blend_mode='alpha',
               alpha=0.7, contours=False, levels=32, colorbar=True, cb_contours=False,
@@ -381,6 +415,7 @@ class grid(object):
                                       cb_ticks=cb_ticks, nSigma=nSigma, 
                                       figsize=figsize, title=title, 
                                       origin='upper', **kwargs)
+         
             
     ### Filters 
     def smooth(self, method='SG', deg=3, win=5, doEdges=True, sigma=1, **kwargs):
