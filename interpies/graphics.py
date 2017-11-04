@@ -18,13 +18,13 @@ from skimage import exposure
 from interpies import colors, grid
 
 # temporary solution to silence a warning issued by Numpy when called by matplotlib imshow function
-import warnings    
+import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
 
 #==============================================================================
 # stats_boundaries
 #==============================================================================
-def stats_boundaries(data,nSigma=1,sigmaStep=1):
+def stats_boundaries(data, nSigma=1, sigmaStep=1):
     '''
     Return a list of statistical quantities ordered in increasing order: min, mean, max
     and the standard deviation intervals in between.
@@ -41,14 +41,14 @@ def stats_boundaries(data,nSigma=1,sigmaStep=1):
     '''
     mu = np.nanmean(data)
     sigma = np.nanstd(data)
-    newTicks = mu + sigma*np.arange(-nSigma,nSigma+sigmaStep,sigmaStep)
+    newTicks = mu + sigma*np.arange(-nSigma, nSigma+sigmaStep, sigmaStep)
 
     return [np.nanmin(data)] + newTicks.tolist() + [np.nanmax(data)]
                 
 #===============================================================================
 # makeColormap
 #===============================================================================
-def makeColormap(table,name='CustomMap'):
+def makeColormap(table, name='CustomMap'):
     """
     Return a LinearSegmentedColormap. The colormap is also registered with
     plt.register_cmap(cmap=my_cmap)
@@ -63,7 +63,7 @@ def makeColormap(table,name='CustomMap'):
         table = table / 255.
     cdict = {'red': [], 'green': [], 'blue': []}
     N = float(len(table))-1
-    for i,rgb in enumerate(table):
+    for i, rgb in enumerate(table):
         r1, g1, b1 = rgb
         cdict['red'].append([i/N, r1, r1])
         cdict['green'].append([i/N, g1, g1])
@@ -76,11 +76,11 @@ def makeColormap(table,name='CustomMap'):
 #===============================================================================
 # cmap_to_array
 #===============================================================================
-def cmap_to_array(cmap,N=256):
+def cmap_to_array(cmap, n=256):
     """
-    Return a Nx3 array of RGB values generated from a colormap object.
+    Return a nx3 array of RGB values generated from a colormap object.
     """
-    return cmap(np.linspace(0, 1, N))[:,:3] # remove alpha column
+    return cmap(np.linspace(0, 1, n))[:,:3] # remove alpha column
     
 #===============================================================================
 # load_cmap
@@ -110,7 +110,7 @@ def load_cmap(cmap='geosoft'):
 #===============================================================================
 # plot_cmap
 #===============================================================================
-def plot_cmap(name='geosoft',n=256):
+def plot_cmap(name='geosoft', n=256):
     '''
     Make a checkerboard plot of the colours in a palette.
     
@@ -125,7 +125,7 @@ def plot_cmap(name='geosoft',n=256):
     ncols = int(np.sqrt(n))
     fig, ax = plt.subplots(figsize=(8, 8))
     ax.imshow(np.arange(ncols**2).reshape(ncols, ncols),
-              cmap = load_cmap(name),
+              cmap=load_cmap(name),
               interpolation="nearest", aspect="equal")
     ax.set_xticklabels([])
     ax.set_yticklabels([])
@@ -134,7 +134,7 @@ def plot_cmap(name='geosoft',n=256):
 #==============================================================================
 # autolevels
 #==============================================================================
-def autolevels(image,minPercent=2,maxPercent=98,funcName='mean',perChannel=False):
+def autolevels(image, minPercent=2, maxPercent=98, funcName='mean', perChannel=False):
     '''
     Rescale the intensity of an image to a new range calculated from low and high 
     percentiles.
@@ -169,7 +169,7 @@ def autolevels(image,minPercent=2,maxPercent=98,funcName='mean',perChannel=False
 #===============================================================================
 # equalizeColormap
 #===============================================================================
-def equalizeColormap(cmap,bins,cdf,name='EqualizedMap'):
+def equalizeColormap(cmap, bins, cdf, name='EqualizedMap'):
     '''
     Re-map a colormap according to a cumulative distribution. This is used to 
     perform histogram equalization of an image by changing the colormap 
@@ -227,7 +227,7 @@ def equalizeColormap(cmap,bins,cdf,name='EqualizedMap'):
 #===============================================================================
 # normalizeColormap
 #===============================================================================
-def normalizeColormap(cmapName,norm='autolevels',**kwargs):
+def normalizeColormap(cmapName, norm='autolevels', **kwargs):
     '''
     Apply a normalising function to a colormap. Only "autolevels" is implemented
     for the moment.
@@ -398,19 +398,15 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
                         fontsize=kwargs.pop('fontsize', 'large'))
     
     # extract keyword arguments that can be passed to ls.shade
-    #shade_kwargs = {}
-    #shade_kwargs['norm'] = kwargs.get('norm')
-    #shade_kwargs['vmin'] = kwargs.get('vmin')
-    #shade_kwargs['vmax'] = kwargs.get('vmax')
     shade_kwargs = dict(norm=kwargs.get('norm'),
                         vmin=kwargs.get('vmin'),
                         vmax=kwargs.get('vmax'))
     
     # modify colormap if required
-    if cmap_norm in ['equalize','equalization','equalisation']:
+    if cmap_norm in ['equalize', 'equalization', 'equalisation']:
         # histogram equalization using scikit-image function
         cdf, bins = exposure.cumulative_distribution(
-                    data[~np.isnan(data)].flatten(),nbins=256)
+                    data[~np.isnan(data)].flatten(), nbins=256)
         my_cmap = equalizeColormap(cmap, bins, cdf)
     elif cmap_norm in ['auto','autolevels']:
         # autolevels
@@ -426,7 +422,7 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
     if ax:
         fig = ax.get_figure()
     else:
-        fig,ax = plt.subplots(figsize=figsize)
+        fig, ax = plt.subplots(figsize=figsize)
     
     # convert input data to a masked array
     data = np.ma.masked_array(data, np.isnan(data))
@@ -472,7 +468,7 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
                          colors='k', linestyles='solid', **kwargs)  
         
     # add colorbar
-    if colorbar and alpha != 0:
+    if colorbar and alpha!=0:
         
         if hs:
             # Use a proxy artist for the colorbar
