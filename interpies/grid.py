@@ -171,7 +171,7 @@ class grid(object):
 
     def resample(self, sampling=2):
         '''
-        Resample grid (from lower-left corner)
+        Resample grid (from lower-left corner).
         The new shape and cellsize of the grid are calculated.
         '''
         new_data = transforms.simple_resample(self.data, sampling)
@@ -179,7 +179,7 @@ class grid(object):
         new_height, new_width = new_data.shape
         # new origin
         new_west = self.extent[0] # unchanged
-        new_north = self.extent[1] + new_height * new_cellsize
+        new_north = self.extent[2] + new_height * new_cellsize
         # new transform
         new_transf = rasterio.transform.from_origin(new_west, new_north,
                                                     new_cellsize, new_cellsize)
