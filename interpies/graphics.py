@@ -169,13 +169,13 @@ def autolevels(image, minPercent=2, maxPercent=98, funcName='mean', perChannel=F
 #===============================================================================
 # equalizeColormap
 #===============================================================================
-def equalizeColormap(cmap, bins, cdf, name='EqualizedMap'):
+def equalizeColormap(cmap, data, name='EqualizedMap'):
     '''
     Re-map a colormap according to a cumulative distribution. This is used to 
     perform histogram equalization of an image by changing the colormap 
     instead of the image. *This is not strickly speaking the equalization of the 
     colormap itself*.
-    The cdf and bins should be calculated from an input image, as if carrying out
+    The cdf and bins is calculated from the input image, as if carrying out
     the histogram equalization of that image. In effect, the cdf becomes integrated  
     to the colormap as a mapping function by redistributing the indices of the
     input colormap.
@@ -184,10 +184,8 @@ def equalizeColormap(cmap, bins, cdf, name='EqualizedMap'):
     ----------
     cmap : string or colormap object
         Input colormap to remap.
-    bins : array
-        Centers of bins.
-    cdf : array
-        Values of cumulative distribution function.
+    data : array
+        Input data
     '''
     
     # first retrieve the color table (lists of RGB values) behind the input colormap
@@ -202,13 +200,18 @@ def equalizeColormap(cmap, bins, cdf, name='EqualizedMap'):
         except:
             raise ValueError('Colormap {} has not been recognised'.format(cmap))
     
-    # normalize the input bins to interval (0,1)
+    # perform histogram equalization using scikit-image function
+    # bins : centers of bins, cdf : values of cumulative distribution function.
+    cdf, bins = exposure.cumulative_distribution(
+                    data[~np.isnan(data)].flatten(), nbins=256)
+
+    # normalize the bins to interval (0,1)
     bins_norm = (bins - bins.min())/np.float(bins.max() - bins.min())
     
     # calculate new indices by applying the cdf as a function on the old indices
     # which are initially regularly spaced. 
-    old_indices = np.linspace(0,1,len(cmList))
-    new_indices = np.interp(old_indices,cdf,bins_norm)
+    old_indices = np.linspace(0, 1, len(cmList))
+    new_indices = np.interp(old_indices, cdf, bins_norm)
     
     # make sure indices start with 0 and end with 1
     new_indices[0] = 0.0
@@ -222,6 +225,7 @@ def equalizeColormap(cmap, bins, cdf, name='EqualizedMap'):
         cdict['green'].append([n, g1, g1])
         cdict['blue'].append([n, b1, b1])
         
+    # return new colormap
     return mcolors.LinearSegmentedColormap(name, cdict)
    
 #===============================================================================
@@ -333,7 +337,7 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
     dy : number, optional
         cell size in the y direction
     fraction : number
-        Increases or decreases the contrast of the hillshade. 
+        Increase or decrease the contrast of the hillshade. 
     blend_mode :  {'alpha', 'hsv', 'overlay', 'soft'} 
         The type of blending used to combine the colormapped data values with the 
         illumination intensity. Default is 'alpha' and the effect is controlled
@@ -342,7 +346,7 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
         Controls the transparency of the data overlaid over the hillshade.
         1.0 is fully opaque while 0.0 is fully transparent.
     contours : Boolean
-        If True, adds contours to the map. The number of calculated contours is 
+        If True, add contours to the map. The number of calculated contours is 
         defined by:
             levels : integer
                 Number of contour levels.
@@ -360,10 +364,10 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
         Add lines corresponding to contours on the colorbar.
     figsize: tuple
         Dimensions of the figure: width, height in inches. 
-        If not provided, defaults to (8,8).
+        If not provided, the default is (8,8).
     title: string
         String to display as a title above the plot. If the source is a grid
-        object, the title is taken from the name of the grid.
+        object, the title is taken by default from the name of the grid.
     kwargs : other optional arguments
         Can be used to pass other arguments to imshow, such as 'origin' 
             and 'extent', or for the colorbar('shrink'), or the title 
@@ -404,10 +408,9 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
     
     # modify colormap if required
     if cmap_norm in ['equalize', 'equalization', 'equalisation']:
-        # histogram equalization using scikit-image function
-        cdf, bins = exposure.cumulative_distribution(
-                    data[~np.isnan(data)].flatten(), nbins=256)
-        my_cmap = equalizeColormap(cmap, bins, cdf)
+        # equalisation
+        my_cmap = equalizeColormap(cmap, data)
+
     elif cmap_norm in ['auto','autolevels']:
         # autolevels
         minP = kwargs.pop('minPercent',10) # also removes the key from the dictionary
@@ -456,11 +459,11 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
                            fraction=fraction, **shade_kwargs)
         
         # finally plot the array
-        ax.imshow(rgb,**kwargs)
+        ax.imshow(rgb, **kwargs)
         
     else:
         # display data without hillshading
-        im = ax.imshow(data,cmap=my_cmap,**kwargs)
+        im = ax.imshow(data, cmap=my_cmap, **kwargs)
         
     # add contours
     if contours:
@@ -472,7 +475,7 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
         
         if hs:
             # Use a proxy artist for the colorbar
-            im = ax.imshow(data,cmap=my_cmap,**kwargs)
+            im = ax.imshow(data, cmap=my_cmap, **kwargs)
             im.remove()
         # draw colorbar
         if cb_ticks=='linear': # normal equidistant ticks on a linear scale 
@@ -518,7 +521,7 @@ def saveMap(outfile, fig=None, orig_size=None, dpi=100):
         fig = plt.gcf()
     ax = fig.gca()
     ax.set_axis_off()
-    ax.set_position([0,0,1,1])    
+    ax.set_position([0,0,1,1])
     ax.set_aspect('auto')
     fig.set_frameon(False)
     
@@ -527,4 +530,3 @@ def saveMap(outfile, fig=None, orig_size=None, dpi=100):
         fig.set_size_inches(w/float(dpi), h/float(dpi), forward=False)
     
     fig.savefig(outfile, dpi=dpi)
-                        
