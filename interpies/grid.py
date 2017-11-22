@@ -315,9 +315,10 @@ class grid(object):
 
     ### Graphics
     def show(self, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
-              zf=10, azdeg=45, altdeg=45, dx=1, dy=1, fraction=1.5, blend_mode='alpha',
-              alpha=0.7, contours=False, levels=32, colorbar=True, cb_contours=False,
-              cb_ticks='linear', nSigma=1, figsize=(8,8), title=None, **kwargs):
+              zf=10, azdeg=45, altdeg=45, dx=1, dy=1, contrast=1.5, brightness=1.0,
+              blend_mode='alpha', alpha=0.7, contours=False, levels=32, colorbar=True,
+              cb_contours=False, cb_ticks='linear', nSigma=1, figsize=(8,8), 
+              title=None, **kwargs):
         '''
         Display an array with optional hillshading and contours. Mapping of the data 
         to the colormap is done linearly by default. Instead the colormap is
@@ -352,18 +353,22 @@ class grid(object):
         hs : boolean
             If True, the array is displayed in colours over a grey hillshaded version
             of the data.
-        zf : number
+        zf : float
             Vertical exaggeration (Z factor) for hillshading.
-        azdeg : number
+        azdeg : float
             The azimuth (0-360, degrees clockwise from North) of the light source.
-        altdeg : number
+        altdeg : float
             The altitude (0-90, degrees up from horizontal) of the light source.
-        dx : number, optional
+        dx : float, optional
             cell size in the x direction
-        dy : number, optional
+        dy : float, optional
             cell size in the y direction
-        fraction : number
+        contrast : float
             Increases or decreases the contrast of the hillshade. 
+        brightness : float
+            Increase or decrease the brightness of the image.
+            Useful when the presence of the hillshade makes the result a little
+            too dark.
         blend_mode :  {'alpha', 'hsv', 'overlay', 'soft'} 
             The type of blending used to combine the colormapped data values with the 
             illumination intensity. Default is 'alpha' and the effect is controlled
@@ -388,7 +393,7 @@ class grid(object):
                     Size of the interval to show between ticks on the colorbar. 
         cb_contours : Boolean
             Add lines corresponding to contours on the colorbar.
-        figsize: tuple
+        figsize: tuple of floats
             Dimensions of the figure: width, height in inches. 
             If not provided, defaults to (8,8).
         title: string
@@ -413,9 +418,9 @@ class grid(object):
         if 'origin' in kwargs:
             return graphics.imshow_hs(self,ax=ax, cmap=cmap, cmap_norm=cmap_norm,
                                       hs=hs, zf=zf, azdeg=azdeg, altdeg=altdeg, 
-                                      dx=dx, dy=dy, fraction=fraction, 
-                                      blend_mode=blend_mode, alpha=alpha, 
-                                      contours=contours, levels=levels, 
+                                      dx=dx, dy=dy, contrast=contrast, 
+                                      brightness=brightness, blend_mode=blend_mode,
+                                      alpha=alpha, contours=contours, levels=levels, 
                                       colorbar=colorbar, cb_contours=cb_contours,
                                       cb_ticks=cb_ticks, nSigma=nSigma, 
                                       figsize=figsize, title=title, **kwargs)
@@ -423,9 +428,9 @@ class grid(object):
             # set origin to ensure that both grid and contours get the same origin
             return graphics.imshow_hs(self, ax=ax, cmap=cmap, cmap_norm=cmap_norm,
                                       hs=hs, zf=zf, azdeg=azdeg, altdeg=altdeg, 
-                                      dx=dx, dy=dy, fraction=fraction, 
-                                      blend_mode=blend_mode, alpha=alpha, 
-                                      contours=contours, levels=levels, 
+                                      dx=dx, dy=dy, contrast=contrast, 
+                                      brightness=brightness, blend_mode=blend_mode, 
+                                      alpha=alpha, contours=contours, levels=levels, 
                                       colorbar=colorbar, cb_contours=cb_contours,
                                       cb_ticks=cb_ticks, nSigma=nSigma, 
                                       figsize=figsize, title=title, 

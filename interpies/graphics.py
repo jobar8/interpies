@@ -56,8 +56,8 @@ def makeColormap(table, name='CustomMap'):
     Parameters
     ----------
     table : a sequence of RGB tuples. 
-        Values need to be between 0 and 1.
-    
+        Values need to be either floats between 0 and 1, or 
+        integers between 0 and 255.
     """
     if np.any(table > 1):
         table = table / 255.
@@ -89,7 +89,6 @@ def load_cmap(cmap='geosoft'):
     """
     Return a colormap object.
     If input is a string, load first the colormap, otherwise return the cmap unchanged.
-    
     """
     # first suppose input is the name of the colormap
     if cmap in colors.datad: # one of the additional colormaps in interpies colors module
@@ -97,29 +96,26 @@ def load_cmap(cmap='geosoft'):
         new_cm = mcolors.LinearSegmentedColormap.from_list(cmap, cmList)
         plt.register_cmap(cmap=new_cm)
         return new_cm
-        
     elif cmap in cm.cmap_d: # matplotlib colormaps + the new ones (viridis, inferno, etc.)
         return cm.get_cmap(cmap)
-        
     elif isinstance(cmap,mcolors.Colormap):
         return cmap
-        
     else:
         raise ValueError('Colormap {} has not been recognised'.format(cmap))
- 
+
 #===============================================================================
 # plot_cmap
 #===============================================================================
 def plot_cmap(name='geosoft', n=256):
     '''
     Make a checkerboard plot of the colours in a palette.
-    
+
     Parameters
     ----------
     name : str
         Name of the colormap to plot.
     n : int, optional
-        Number of cells to use. Note that the closest power of 2 is actually used 
+        Number of cells to use. Note that the closest power of 2 is actually used
         as the plot is a square.
     '''
     ncols = int(np.sqrt(n))
@@ -130,20 +126,20 @@ def plot_cmap(name='geosoft', n=256):
     ax.set_xticklabels([])
     ax.set_yticklabels([])
     ax.grid(False)
-    
+
 #==============================================================================
 # autolevels
 #==============================================================================
 def autolevels(image, minPercent=2, maxPercent=98, funcName='mean', perChannel=False):
     '''
-    Rescale the intensity of an image to a new range calculated from low and high 
+    Rescale the intensity of an image to a new range calculated from low and high
     percentiles.
-    For RGB images and if the perChannel option is False, the new limits are 
-    calculated for each channel and the mean (or median, min or max) of these limits 
+    For RGB images and if the perChannel option is False, the new limits are
+    calculated for each channel and the mean (or median, min or max) of these limits
     are then applied to the whole image.
     '''
     # dictionary of functions
-    funcs = {'mean':np.mean,'median':np.median,'min':np.min,'max':np.max}
+    funcs = {'mean':np.mean, 'median':np.median, 'min':np.min, 'max':np.max}
     
     # calculate percentiles (returns 3 values for RGB pictures or vectors, 1 for grayscale images)
     if image.shape[1] == 3: # RGB
@@ -288,9 +284,10 @@ def alpha_blend(rgb, intensity, alpha = 0.7):
 # imshow_hs
 #===============================================================================
 def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
-              zf=10, azdeg=45, altdeg=45, dx=1, dy=1, fraction=1.5, blend_mode='alpha',
-              alpha=0.7, contours=False, levels=32, colorbar=True, cb_contours=False,
-              cb_ticks='linear', nSigma=1, figsize=(8,8), title=None, **kwargs):
+              zf=10, azdeg=45, altdeg=45, dx=1, dy=1, contrast=1.5, brightness=1.0,
+              blend_mode='alpha', alpha=0.7, contours=False, levels=32, colorbar=True,
+              cb_contours=False, cb_ticks='linear', nSigma=1, figsize=(8,8), 
+              title=None, **kwargs):
     '''
     Display an array with optional hillshading and contours. Mapping of the data 
     to the colormap is done linearly by default. Instead the colormap is
@@ -326,18 +323,23 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
     hs : boolean
         If True, the array is displayed in colours over a grey hillshaded version
         of the data.
-    zf : number
+    zf : float
         Vertical exaggeration (Z factor) for hillshading.
-    azdeg : number
+    azdeg : float
         The azimuth (0-360, degrees clockwise from North) of the light source.
-    altdeg : number
+    altdeg : float
         The altitude (0-90, degrees up from horizontal) of the light source.
-    dx : number, optional
+    dx : float, optional
         cell size in the x direction
-    dy : number, optional
+    dy : float, optional
         cell size in the y direction
-    fraction : number
-        Increase or decrease the contrast of the hillshade. 
+    contrast : float
+        Increase or decrease the contrast of the hillshade. This is directly
+        passed to the fraction argument of the matplotlib hillshade function.
+    brightness : float
+        Increase or decrease the brightness of the image.
+        Useful when the presence of the hillshade makes the result a little
+        too dark.
     blend_mode :  {'alpha', 'hsv', 'overlay', 'soft'} 
         The type of blending used to combine the colormapped data values with the 
         illumination intensity. Default is 'alpha' and the effect is controlled
@@ -443,21 +445,26 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
         # calculate hillshade and combine the colormapped data with the intensity
         if alpha == 0:
             # special case when only the shaded relief is needed without blending            
-            rgb = ls.hillshade(data, vert_exag=zf, dx=dx, dy=dy, fraction=fraction)
+            rgb = ls.hillshade(data, vert_exag=zf, dx=dx, dy=dy, fraction=contrast)
             kwargs['cmap'] = 'gray'
         
         elif blend_mode == 'alpha':
             # transparency blending
             rgb = ls.shade(data, cmap=my_cmap, blend_mode=alpha_blend,
                            vert_exag=zf, dx=dx, dy=dy,
-                           fraction=fraction, alpha=alpha, **shade_kwargs)
+                           fraction=contrast, alpha=alpha, **shade_kwargs)
             
         else:
             # other blending modes from matplotlib function
             rgb = ls.shade(data, cmap=my_cmap, blend_mode=blend_mode, 
                            vert_exag=zf, dx=dx, dy=dy,
-                           fraction=fraction, **shade_kwargs)
+                           fraction=contrast, **shade_kwargs)
         
+        # apply brightness control
+        if brightness != 1.0:
+            rgb *= brightness
+            rgb = np.clip(rgb, 0, 1)
+
         # finally plot the array
         ax.imshow(rgb, **kwargs)
         
@@ -494,9 +501,6 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
     if title:
         ax.set_title(title, **title_kwargs)
         
-    # final show (better without as it gives the handle of the axis back)
-    #plt.show()
-    
     # return Axes instance for re-use 
     return ax
         
