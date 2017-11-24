@@ -46,9 +46,9 @@ def stats_boundaries(data, nSigma=1, sigmaStep=1):
     return [np.nanmin(data)] + newTicks.tolist() + [np.nanmax(data)]
                 
 #===============================================================================
-# makeColormap
+# make_colormap
 #===============================================================================
-def makeColormap(table, name='CustomMap'):
+def make_colormap(table, name='CustomMap'):
     """
     Return a LinearSegmentedColormap. The colormap is also registered with
     plt.register_cmap(cmap=my_cmap)
