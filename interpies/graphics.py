@@ -78,10 +78,25 @@ def make_colormap(table, name='CustomMap'):
 #===============================================================================
 def cmap_to_array(cmap, n=256):
     """
-    Return a nx3 array of RGB values generated from a colormap object.
+    Return a nx3 array of RGB values that defines a colormap or generate it from 
+    a colormap object.
+    Input is colormap name (if recognised) or matplotlib cmap object.
     """
-    return cmap(np.linspace(0, 1, n))[:,:3] # remove alpha column
+    # first assume cmap is a string
+    if cmap in colors.datad: # additional colormaps in interpies.colors module
+        cmArray = np.asarray(colors.datad[cmap])
+    elif cmap in cm.cmap_d: # matplotlib colormaps + the new ones (viridis, inferno, etc.)
+        cmap = cm.cmap_d[cmap]
+        cmArray = cmap(np.linspace(0, 1, n))[:,:3]
+    # now assume cmap is a colormap object
+    else:
+        try:
+            cmArray = cmap(np.linspace(0, 1, n))[:,:3] # remove alpha column
+        except:
+            raise ValueError('Colormap {} has not been recognised'.format(cmap)) 
     
+    return cmArray
+
 #===============================================================================
 # load_cmap
 #===============================================================================
@@ -98,7 +113,7 @@ def load_cmap(cmap='geosoft'):
         return new_cm
     elif cmap in cm.cmap_d: # matplotlib colormaps + the new ones (viridis, inferno, etc.)
         return cm.get_cmap(cmap)
-    elif isinstance(cmap,mcolors.Colormap):
+    elif isinstance(cmap, mcolors.Colormap):
         return cmap
     else:
         raise ValueError('Colormap {} has not been recognised'.format(cmap))
@@ -130,6 +145,61 @@ def plot_cmap(name='geosoft', n=256):
 #==============================================================================
 # autolevels
 #==============================================================================
+def rescale_intensity(image, imin, imax):
+    """Return image after stretching or shrinking its intensity levels.
+    """
+
+    image = np.clip(image, imin, imax)
+
+    return (image - imin) / float(imax - imin)
+
+def clip_colormap(cm_array, data, minPercent=2, maxPercent=98, name='ClippeddMap'):
+
+    valid_data = data[~np.isnan(data)]
+
+    # calculate boundaries from data
+    if data.shape[1] == 3: # RGB
+        pMin, pMax = np.percentile(valid_data, (minPercent, maxPercent), axis=0)
+    else:
+        pMin, pMax = np.percentile(valid_data, (minPercent, maxPercent))
+
+    # calculate corresponding values on scale 0-1
+    imin = (pMin - valid_data.min()) / (valid_data.max() - valid_data.min())
+    imax = (pMax - valid_data.min()) / (valid_data.max() - valid_data.min())
+    print(imin, imax)
+
+    n_new = len(cm_array) / (imax - imin)
+    n_left = int(imin * n_new)
+    n_right = int(n_new - imax * n_new)
+    print(n_left, n_right)
+
+    # calculate new indices 
+    old_indices = np.linspace(0, 1, len(cm_array))
+    new_indices = np.linspace(0, 1, len(cm_array) + n_left + n_right)
+    
+    # remap the color table
+    cdict = {'red': [], 'green': [], 'blue': []}
+    for i, n in enumerate(new_indices):
+        if i < n_left:
+            r1, g1, b1 = cm_array[0]
+            cdict['red'].append([n, r1, r1])
+            cdict['green'].append([n, g1, g1])
+            cdict['blue'].append([n, b1, b1])
+        elif i >= len(cm_array) + n_left:
+            r1, g1, b1 = cm_array[-1]
+            cdict['red'].append([n, r1, r1])
+            cdict['green'].append([n, g1, g1])
+            cdict['blue'].append([n, b1, b1])
+        else:
+            r1, g1, b1 = cm_array[i - n_left]
+            cdict['red'].append([n, r1, r1])
+            cdict['green'].append([n, g1, g1])
+            cdict['blue'].append([n, b1, b1])
+        
+    # return new colormap
+    return mcolors.LinearSegmentedColormap(name, cdict)
+
+
 def autolevels(image, minPercent=2, maxPercent=98, funcName='mean', perChannel=False):
     '''
     Rescale the intensity of an image to a new range calculated from low and high
@@ -143,22 +213,24 @@ def autolevels(image, minPercent=2, maxPercent=98, funcName='mean', perChannel=F
     
     # calculate percentiles (returns 3 values for RGB pictures or vectors, 1 for grayscale images)
     if image.shape[1] == 3: # RGB
-        pMin,pMax = np.percentile(image,(minPercent, maxPercent),axis=0)
+        pMin, pMax = np.percentile(image, (minPercent, maxPercent), axis=0)
     else:
-        pMin,pMax = np.percentile(image,(minPercent, maxPercent),axis=(0,1))
+        pMin, pMax = np.percentile(image, (minPercent, maxPercent), axis=(0, 1))
         perChannel = False # makes sure normalisation is applied to the only band
 
     # Apply normalisation
     if not perChannel: # finds new min and max using selected function applied to all channels
         newMin = funcs[funcName](pMin)
         newMax = funcs[funcName](pMax)
-        auto = exposure.rescale_intensity(image,in_range=(newMin,newMax)) 
+        #auto = rescale_intensity(image, newMin, newMax)
+        auto = exposure.rescale_intensity(image, in_range=(newMin, newMax),
+                                          out_range='image')
 
     else: # applies a rescale on each channel separately
-        r_channel = exposure.rescale_intensity(image[:,:,0], in_range=(pMin[0],pMax[0])) 
-        g_channel = exposure.rescale_intensity(image[:,:,1], in_range=(pMin[1],pMax[1])) 
-        b_channel = exposure.rescale_intensity(image[:,:,2], in_range=(pMin[2],pMax[2])) 
-        auto = np.stack((r_channel,g_channel,b_channel),axis=2)
+        r_channel = exposure.rescale_intensity(image[:, :, 0], in_range=(pMin[0], pMax[0]), out_range='image')
+        g_channel = exposure.rescale_intensity(image[:, :, 1], in_range=(pMin[1], pMax[1]), out_range='image')
+        b_channel = exposure.rescale_intensity(image[:, :, 2], in_range=(pMin[2], pMax[2]), out_range='image')
+        auto = np.stack((r_channel, g_channel, b_channel), axis=2)
 
     return auto 
     
@@ -183,20 +255,10 @@ def equalizeColormap(cmap, data, name='EqualizedMap'):
     data : array
         Input data
     '''
-    
     # first retrieve the color table (lists of RGB values) behind the input colormap
-    if cmap in colors.datad: # one of the additional colormaps in colors module
-        cmList = colors.datad[cmap]
-    elif cmap in cm.cmap_d: # matplotlib colormaps + the new ones (viridis, inferno, etc.)
-        cmList = cmap_to_array(cm.cmap_d[cmap])
-    else:
-        try:
-            # in case cmap is a colormap object
-            cmList = cmap_to_array(cmap) 
-        except:
-            raise ValueError('Colormap {} has not been recognised'.format(cmap))
+    cm_array = cmap_to_array(cmap, n=256)
     
-    # perform histogram equalization using scikit-image function
+    # perform histogram equalization of the data using scikit-image function.
     # bins : centers of bins, cdf : values of cumulative distribution function.
     cdf, bins = exposure.cumulative_distribution(
                     data[~np.isnan(data)].flatten(), nbins=256)
@@ -206,7 +268,7 @@ def equalizeColormap(cmap, data, name='EqualizedMap'):
     
     # calculate new indices by applying the cdf as a function on the old indices
     # which are initially regularly spaced. 
-    old_indices = np.linspace(0, 1, len(cmList))
+    old_indices = np.linspace(0, 1, len(cm_array))
     new_indices = np.interp(old_indices, cdf, bins_norm)
     
     # make sure indices start with 0 and end with 1
@@ -215,8 +277,8 @@ def equalizeColormap(cmap, data, name='EqualizedMap'):
     
     # remap the color table
     cdict = {'red': [], 'green': [], 'blue': []}
-    for i,n in enumerate(new_indices):
-        r1, g1, b1 = cmList[i]
+    for i, n in enumerate(new_indices):
+        r1, g1, b1 = cm_array[i]
         cdict['red'].append([n, r1, r1])
         cdict['green'].append([n, g1, g1])
         cdict['blue'].append([n, b1, b1])
@@ -227,30 +289,32 @@ def equalizeColormap(cmap, data, name='EqualizedMap'):
 #===============================================================================
 # normalizeColormap
 #===============================================================================
-def normalizeColormap(cmapName, norm='autolevels', **kwargs):
+def normalizeColormap(cmap, data=None, norm='autolevels', **kwargs):
     '''
     Apply a normalising function to a colormap. Only "autolevels" is implemented
     for the moment.
     
     **kwargs are passed to the normalising function.
     '''
-    try:
-        cmap = cm.get_cmap(cmapName) # works even if cmapName is already a colormap
-    except:
-        # colormap is one of the extra ones added by the colors module 
-        cmap = load_cmap(cmapName)
-        
-    # convert cmap to array for normalisation
-    cmList = cmap_to_array(cmap)
-    
-    # normalise
-    if norm == 'autolevels':
-        cmList_norm = autolevels(cmList,**kwargs)
+    # get the name of the colormap if input is colormap object
+    if isinstance(cmap, mcolors.Colormap):
+        cm_name = cmap.name
     else:
-        cmList_norm = cmList
+        cm_name = cmap
+
+    # retrieve the color table (lists of RGB values) behind the input colormap
+    cm_array = cmap_to_array(cmap, n=256)
+    
+    # TODO normalise data
+    if norm == 'autolevels':
+        normed_cm_array = autolevels(cm_array, **kwargs)
+    elif norm == 'clip':
+        return clip_colormap(cm_array, data, **kwargs)
+    else:
+        normed_cm_array = cm_array
         
     # create new colormap
-    new_cm = mcolors.LinearSegmentedColormap.from_list(cmap.name + '_n', cmList_norm)
+    new_cm = mcolors.LinearSegmentedColormap.from_list(cm_name + '_n', normed_cm_array)
     
     return new_cm
         
@@ -415,13 +479,21 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
 
     elif cmap_norm in ['auto','autolevels']:
         # autolevels
-        minP = kwargs.pop('minPercent',10) # also removes the key from the dictionary
+        minP = kwargs.pop('minPercent',10) # remove the key from the dictionary
         maxP = kwargs.pop('maxPercent',90)
-        my_cmap = normalizeColormap(cmap, norm='autolevels',
+        data = autolevels(data, minPercent=minP, maxPercent=maxP)
+        my_cmap = load_cmap(cmap)
+        #my_cmap = normalizeColormap(cmap, data, norm='autolevels',
+        #                            minPercent=minP, maxPercent=maxP)
+    elif cmap_norm == 'clip':
+        # clip colormap
+        minP = kwargs.pop('minPercent',10) # remove the key from the dictionary
+        maxP = kwargs.pop('maxPercent',90)
+        my_cmap = normalizeColormap(cmap, data, norm='clip',
                                     minPercent=minP, maxPercent=maxP)
     else:
         # colormap is loaded unchanged from the input name
-        my_cmap = load_cmap(cmap)  # raises error if name is not recognised
+        my_cmap = load_cmap(cmap)  # raise error if name is not recognised
         
     # create figure or retrieve the one already defined
     if ax:
