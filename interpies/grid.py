@@ -16,9 +16,9 @@ import numpy as np
 from interpies import transforms, spatial, graphics
 
 #==============================================================================
-# grid class 
+# Grid class 
 #==============================================================================
-class grid(object):
+class Grid(object):
     '''
     A class containing a grid object.
     '''
@@ -26,15 +26,14 @@ class grid(object):
     def __init__(self, data, transform=None, name='', nodata_value=None,
                  filename='', mask=None, crs=None, copyFrom=None):
         '''
-        Create a new grid object by combining a 2D array (data) and georeferecing 
-        information (rasterio transform). The transform is an affine transformation 
-        matrix that maps pixel locations in (row, col) coordinates to (x, y) 
-        spatial positions. It basically gives the position of the upper left 
+        Create a new grid object by combining a 2D array (data) and georeferecing
+        information (rasterio transform). The transform is an affine transformation
+        matrix that maps pixel locations in (row, col) coordinates to (x, y)
+        spatial positions. It basically gives the position of the upper left
         corner of the dataset, as well as the cell size.
-        
         '''
         # copy parameters from other grid
-        if isinstance(copyFrom, grid):
+        if isinstance(copyFrom, Grid):
             transform = copyFrom.transform
             nodata_value = copyFrom.nodata
             filename = copyFrom.filename
@@ -117,7 +116,7 @@ class grid(object):
         else:
             data = dataset.read(band)
 
-        return grid(data, dataset.transform, name=name,  
+        return Grid(data, dataset.transform, name=name,  
                     nodata_value=nodata_value, filename=dataset.name, crs=crs)
         
     def save(self,outputFile):
@@ -166,7 +165,7 @@ class grid(object):
         new_transf = rasterio.transform.from_origin(new_west, new_north,
                                                     self.cellsize, self.cellsize)
         
-        return grid(data_selection, new_transf, name=self.name+'_clip', nodata_value=self.nodata)
+        return Grid(data_selection, new_transf, name=self.name+'_clip', nodata_value=self.nodata)
     
 
     def resample(self, sampling=2):
@@ -184,7 +183,7 @@ class grid(object):
         new_transf = rasterio.transform.from_origin(new_west, new_north,
                                                     new_cellsize, new_cellsize)
         
-        return grid(new_data, new_transf, name=self.name+'_res{}'.format(sampling),
+        return Grid(new_data, new_transf, name=self.name+'_res{}'.format(sampling),
                     nodata_value=self.nodata)
         
 
@@ -221,7 +220,7 @@ class grid(object):
         
         # open output file and create grid object
         dataset = rasterio.open(outputFile)
-        return grid.from_dataset(dataset)
+        return Grid.from_dataset(dataset)
     
     
     def scale(self, scale_factor):
@@ -229,7 +228,7 @@ class grid(object):
         Multiply data with a number.
         '''
         # return scaled grid
-        return grid(scale_factor * self.data, self.transform, 
+        return Grid(scale_factor * self.data, self.transform, 
                     name=self.name+'_scaled', nodata_value=self.nodata)
 
 
@@ -259,7 +258,7 @@ class grid(object):
         trend = model.predict(Xfull).reshape((self.nrows,self.ncols))
         
         # return detrended grid
-        return grid(self.data - trend, self.transform, 
+        return Grid(self.data - trend, self.transform, 
                     name=self.name+'_detrend', nodata_value=self.nodata)
         
 
@@ -268,7 +267,7 @@ class grid(object):
         '''
         filled = transforms.fillNodata(self.data)
         # return filled grid
-        return grid(filled, self.transform, 
+        return Grid(filled, self.transform, 
                     name=self.name+'_filled', nodata_value=self.nodata)
         
 
@@ -315,40 +314,44 @@ class grid(object):
 
     ### Graphics
     def show(self, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
-              zf=10, azdeg=45, altdeg=45, dx=1, dy=1, contrast=1.5, brightness=1.0,
-              blend_mode='alpha', alpha=0.7, contours=False, levels=32, colorbar=True,
-              cb_contours=False, cb_ticks='linear', nSigma=1, figsize=(8,8), 
+              zf=10, azdeg=45, altdeg=45, dx=1, dy=1, hs_contrast=1.5, cmap_brightness=1.0,
+              blend_mode='alpha', alpha=0.7, contours=False, colorbar=True,
+              cb_contours=False, cb_ticks='linear', std_range=1, figsize=(8,8), 
               title=None, **kwargs):
         '''
-        Display an array with optional hillshading and contours. Mapping of the data 
-        to the colormap is done linearly by default. Instead the colormap is
-        normalised by equalisation (default) or by clipping extremes (autolevels). 
-        This allows the true distribution of the data to be displayed on the colorbar.
-        
+        Display a grid with optional hillshading and contours.
+        The data representation is controlled by the colormap and two types
+        of normalisation can be applied to balance an uneven distribution of values.
+        Contrary to the standard method available in `plt.imshow`, it is the
+        colormap, not the data, that is modified. This allows the true distribution
+        of the data to be displayed on the colorbar. The two options are equalisation
+        (default) or clipping extremes (autolevels).
+
         Parameters
         ----------
-        source : 2D array or grid object
+        source : 2D array or interpies grid object
             Grid to plot. Arrays with NaNs and masked arrays are supported.
         ax : matplotlib Axes instance
             This indicates where to make the plot. Create new figure if absent.
         cmap : string or colormap object
-            Colormap or name of the colormap to use to display the array. The default 'geosoft' is
-            the blue to pink clra colormap from Geosoft Oasis Montaj.
+            Colormap or name of the colormap to use to display the array. The default
+            is 'geosoft' and corresponds to the blue to pink clra colormap from
+            Geosoft Oasis Montaj.
         cmap_norm : string
-            Type of normalisation of the colormap. 
+            Type of normalisation of the colormap.
             Possible values are:
                 'equalize' (or 'equalization')
-                    Increases contrast by distributing intensities across all the 
-                    possible colours. With this option, it is not the data that is normalised 
-                    but the colormap, based on the data. 
+                    Increases contrast by distributing intensities across all the
+                    possible colours. The distribution is calculated from the
+                    data and applied to the colormap.
                 'auto' (or 'autolevels')
                     Stretches the histogram of the colormap so that dark colours become
-                    darker and the bright colours become brighter. Two extra parameters control 
-                    the amount of clipping at the extremes: minPercent (default to 10%) and
-                    maxPercent (default to 90%)
+                    darker and the bright colours become brighter. The extreme values
+                    are calculated with percentiles: min_percent (defaults to 2%) and
+                    max_percent (defaults to 98%).
                 'none' or any other value
                     The colormap is not normalised. The data can still be normalised
-                    in the usual way using the 'norm' keyword argument and a 
+                    in the usual way using the 'norm' keyword argument and a
                     Normalization instance defined in matplotlib.colors().
         hs : boolean
             If True, the array is displayed in colours over a grey hillshaded version
@@ -363,76 +366,77 @@ class grid(object):
             cell size in the x direction
         dy : float, optional
             cell size in the y direction
-        contrast : float
-            Increases or decreases the contrast of the hillshade. 
-        brightness : float
-            Increase or decrease the brightness of the image.
+        hs_contrast : float
+            Increase or decrease the contrast of the hillshade. This is directly
+            passed to the fraction argument of the matplotlib hillshade function.
+        cmap_brightness : float
+            Increase or decrease the brightness of the image by adjusting the
+            gamma of the colorbar. Default value is 1.0 meaning no effect. Values
+            greater than 1.0 make the image brighter, less than 1.0 darker.
             Useful when the presence of the hillshade makes the result a little
             too dark.
-        blend_mode :  {'alpha', 'hsv', 'overlay', 'soft'} 
-            The type of blending used to combine the colormapped data values with the 
+        blend_mode :  {'alpha', 'hsv', 'overlay', 'soft'}
+            The type of blending used to combine the colormapped data values with the
             illumination intensity. Default is 'alpha' and the effect is controlled
             by the alpha parameter.
         alpha : float
             Controls the transparency of the data overlaid over the hillshade.
             1.0 is fully opaque while 0.0 is fully transparent.
-        contours : Boolean
-            If True, adds contours to the map. The number of calculated contours is 
-            defined by:
-                levels : integer
-                    Number of contour levels.
+        contours : Boolean or integer
+            If True, add contours to the map, the number of them being the default value, i.e. 32.
+            If an integer is given instead, use this value as the number of contours
+            levels.
         colorbar : Boolean
             If True, draw a colorbar on the right-hand side of the map. The colorbar
             shows the distribution of colors, as modified by the normalization algorithm.
         cb_ticks : string
-            If left as default ('linear') the ticks and labels on the colorbar are 
+            If left as default ('linear') the ticks and labels on the colorbar are
             spaced linearly in the standard way. Otherwise (any other keyword, for example
-            'stats'), the mean and two ticks at + and - nSigma*(standard deviation) 
+            'stats'), the mean and two ticks at + and - std_range*(standard deviation)
             are shown instead.
-                nSigma : integer (default is 1)
-                    Size of the interval to show between ticks on the colorbar. 
+                std_range : integer (default is 1)
+                    Extent of the range from the mean as a multiple of the standard deviation.
         cb_contours : Boolean
             Add lines corresponding to contours on the colorbar.
-        figsize: tuple of floats
-            Dimensions of the figure: width, height in inches. 
-            If not provided, defaults to (8,8).
+        figsize: tuple
+            Dimensions of the figure: width, height in inches.
+            If not provided, the default is (8, 8).
         title: string
             String to display as a title above the plot. If the source is a grid
-            object, the title is taken from the name of the grid.
+            object, the title is taken by default from the name of the grid.
         kwargs : other optional arguments
-            Can be used to pass other arguments to imshow, such as 'origin' 
-            and 'extent', or for the colorbar('shrink'), or the title 
+            Can be used to pass other arguments to `plt.imshow()`, such as 'origin'
+            and 'extent', or for the colorbar('shrink'), or the title
             ('fontweight' and 'fontsize').
-            
+
         Returns
         -------
         ax : Matplotlib Axes instance.
-            
+
         Notes
         -----
         This function exploits the hillshading capabilities implemented in
         matplotlib.colors.LightSource. A new blending mode is added (alpha compositing,
         see https://en.wikipedia.org/wiki/Alpha_compositing).
-        '''
-    
+        '''    
         if 'origin' in kwargs:
             return graphics.imshow_hs(self,ax=ax, cmap=cmap, cmap_norm=cmap_norm,
                                       hs=hs, zf=zf, azdeg=azdeg, altdeg=altdeg, 
-                                      dx=dx, dy=dy, contrast=contrast, 
-                                      brightness=brightness, blend_mode=blend_mode,
-                                      alpha=alpha, contours=contours, levels=levels, 
+                                      dx=dx, dy=dy, hs_contrast=hs_contrast, 
+                                      cmap_brightness=cmap_brightness, blend_mode=blend_mode,
+                                      alpha=alpha, contours=contours, 
                                       colorbar=colorbar, cb_contours=cb_contours,
-                                      cb_ticks=cb_ticks, nSigma=nSigma, 
+                                      cb_ticks=cb_ticks, std_range=std_range, 
                                       figsize=figsize, title=title, **kwargs)
         else: 
             # set origin to ensure that both grid and contours get the same origin
             return graphics.imshow_hs(self, ax=ax, cmap=cmap, cmap_norm=cmap_norm,
                                       hs=hs, zf=zf, azdeg=azdeg, altdeg=altdeg, 
-                                      dx=dx, dy=dy, contrast=contrast, 
-                                      brightness=brightness, blend_mode=blend_mode, 
-                                      alpha=alpha, contours=contours, levels=levels, 
+                                      dx=dx, dy=dy, hs_contrast=hs_contrast, 
+                                      cmap_brightness=cmap_brightness, blend_mode=blend_mode, 
+                                      alpha=alpha, contours=contours, 
                                       colorbar=colorbar, cb_contours=cb_contours,
-                                      cb_ticks=cb_ticks, nSigma=nSigma, 
+                                      cb_ticks=cb_ticks, std_range=std_range, 
                                       figsize=figsize, title=title, 
                                       origin='upper', **kwargs)
 
@@ -451,7 +455,7 @@ class grid(object):
         else:
             raise ValueError('Method {} has not been recognised.'.format(method))
             
-        return grid(output, self.transform, name=self.name+'_smooth')
+        return Grid(output, self.transform, name=self.name+'_smooth')
     
     
     def laplacian(self):
@@ -459,7 +463,7 @@ class grid(object):
         '''
         
         output = transforms.laplacian(self.data, self.cellsize)
-        return grid(output, self.transform, name=self.name+'_laplacian')
+        return Grid(output, self.transform, name=self.name+'_laplacian')
     
     
     ### Derivatives 
@@ -483,7 +487,7 @@ class grid(object):
         else:
             raise ValueError('Method {} has not been recognised.'.format(method))
             
-        return grid(output, self.transform, name=self.name+'_dx')
+        return Grid(output, self.transform, name=self.name+'_dx')
 
 
     def dx2(self, method='SG', deg=4, win=5, doEdges=True, fs_tap=5, **kwargs):
@@ -504,7 +508,7 @@ class grid(object):
         else:
             raise ValueError('Method {} has not been recognised.'.format(method))
             
-        return grid(output, self.transform, name=self.name+'_dx2')
+        return Grid(output, self.transform, name=self.name+'_dx2')
     
     
     def dy(self, method='SG', deg=3, win=5, doEdges=True, fs_tap=5, **kwargs):
@@ -525,7 +529,7 @@ class grid(object):
         else:
             raise ValueError('Method {} has not been recognised.'.format(method))
             
-        return grid(output, self.transform, name=self.name+'_dy')
+        return Grid(output, self.transform, name=self.name+'_dy')
     
     
     def dy2(self, method='SG', deg=4, win=5, doEdges=True, fs_tap=5, **kwargs):
@@ -546,7 +550,7 @@ class grid(object):
         else:
             raise ValueError('Method {} has not been recognised.'.format(method))
             
-        return grid(output, self.transform, name=self.name+'_dy2')
+        return Grid(output, self.transform, name=self.name+'_dy2')
     
     
     def dxdy(self, method='SG', deg=3, win=5, doEdges=True, fs_tap=5, **kwargs):
@@ -567,7 +571,7 @@ class grid(object):
         else:
             raise ValueError('Method {} has not been recognised.'.format(method))
             
-        return grid(output, self.transform, name=self.name+'_dxdy')    
+        return Grid(output, self.transform, name=self.name+'_dxdy')    
     
     
     # vertical derivative
@@ -583,7 +587,7 @@ class grid(object):
         else:
             raise ValueError('Method {} has not been recognised.'.format(method))
             
-        return grid(output, self.transform, name='{}_dz{}'.format(self.name, order))
+        return Grid(output, self.transform, name='{}_dz{}'.format(self.name, order))
     
     
     # vertical derivative with ISVD method (makes use of the Laplace eq.)
@@ -599,7 +603,7 @@ class grid(object):
         else:
             raise ValueError('Method {} has not been recognised.'.format(method))
             
-        return grid(output, self.transform, name='{}_dz{}'.format(self.name, order))
+        return Grid(output, self.transform, name='{}_dz{}'.format(self.name, order))
     
     
     # vertical integral
@@ -613,7 +617,7 @@ class grid(object):
         else:
             raise ValueError('Method {} has not been recognised.'.format(method))
             
-        return grid(output, self.transform, name='{}_vi{}'.format(self.name, order))
+        return Grid(output, self.transform, name='{}_vi{}'.format(self.name, order))
     
     ### Transforms
     
@@ -643,7 +647,7 @@ class grid(object):
         else:
             raise ValueError('Method {} has not been recognised.'.format(method))
             
-        return grid(np.sqrt(dx1*dx1 + dy1*dy1),
+        return Grid(np.sqrt(dx1*dx1 + dy1*dy1),
                     self.transform, name=self.name+'_hgm')
         
         
@@ -672,7 +676,7 @@ class grid(object):
         # calculate tilt angle (in degrees)
         output = np.arctan(alpha * dz_grid.data / hgm_grid.data) * 180 / np.pi
         
-        return grid(output, self.transform, name=self.name+'_tilt')   
+        return Grid(output, self.transform, name=self.name+'_tilt')   
         
     
     # total gradient
@@ -715,7 +719,7 @@ class grid(object):
         # calculate local wavenumber
         output = np.sqrt(dx1*dx1 + dy1*dy1 + dz_grid.data*dz_grid.data)
         
-        return grid(output, self.transform, name=self.name+'_TG')
+        return Grid(output, self.transform, name=self.name+'_TG')
         
     
     # local wavenumber
@@ -774,7 +778,7 @@ class grid(object):
         output = ((dxdz1*dx1 + dydz1*dy1 + dzdz_grid.data*dz_grid.data)
                     /(dx1*dx1 + dy1*dy1 + dz_grid.data*dz_grid.data))
         
-        return grid(output, self.transform, name=self.name+'_LW')
+        return Grid(output, self.transform, name=self.name+'_LW')
     
     
     # TAHG (Tilt Angle of the Horizontal Gradient)
@@ -817,7 +821,7 @@ class grid(object):
         output = transforms.fourier_transform(self.data, self.cellsize,
                                               trans='upcont', z=z, **kwargs)
             
-        return grid(output, self.transform, name=self.name+'_UC{}'.format(z))
+        return Grid(output, self.transform, name=self.name+'_UC{}'.format(z))
     
     
     ## High-pass filter by upward continuation 
@@ -837,11 +841,5 @@ class grid(object):
                                               trans='upcont', z=z, **kwargs)
         output = self.data - upCont1
         
-        return grid(output, self.transform, name=self.name+'_HPUC{}'.format(z))
-    
-       
-   
-            
-            
-            
-            
+        return Grid(output, self.transform, name=self.name+'_HPUC{}'.format(z))
+     
