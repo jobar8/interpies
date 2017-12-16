@@ -116,15 +116,15 @@ def plot_cmap(name='geosoft', n=256):
 
 def equalize_colormap(cmap, data, name='EqualizedMap'):
     '''
-    Re-map a colormap according to a cumulative distribution. This is used to 
-    perform histogram equalization of an image by changing the colormap 
-    instead of the image. *This is not strickly speaking the equalization of the 
+    Re-map a colormap according to a cumulative distribution. This is used to
+    perform histogram equalization of an image by changing the colormap
+    instead of the image. *This is not strickly speaking the equalization of the
     colormap itself*.
     The cdf and bins is calculated from the input image, as if carrying out
-    the histogram equalization of that image. In effect, the cdf becomes integrated  
+    the histogram equalization of that image. In effect, the cdf becomes integrated
     to the colormap as a mapping function by redistributing the indices of the
     input colormap.
-    
+
     Parameters
     ----------
     cmap : string or colormap object
@@ -431,7 +431,8 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
     max_percent = kwargs.pop('max_percent', 98)
 
     # keywords for contours
-    ct_colors = kwargs.pop('colors', 'k')
+    ct_colors = kwargs.pop('ct_colors', 'k')
+    ct_cmap = kwargs.pop('ct_cmap', None)
 
     # modify colormap if required
     if cmap_norm in ['equalize', 'equalise', 'equalization', 'equalisation']:
@@ -500,8 +501,11 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
             levels = 32
         else:
             levels = contours
+        # remove cmap keyword that might have been added earlier
+        _ = kwargs.pop('cmap', None)
         conts = plt.contour(data, levels, linewidths=0.5,
-                            colors=ct_colors, linestyles='solid', **kwargs)
+                            colors=ct_colors, linestyles='solid',
+                            cmap=ct_cmap, **kwargs)
 
     # add colorbar
     if colorbar and alpha != 0:
