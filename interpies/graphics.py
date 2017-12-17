@@ -496,11 +496,14 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
         im = ax.imshow(data, cmap=my_cmap, **kwargs)
 
     # add contours
-    if contours:
-        if isinstance(contours, bool):
+    levels = None
+    if isinstance(contours, bool):
+        if contours:
             levels = 32
-        else:
-            levels = contours
+    else:
+        levels = contours
+        contours = True
+    if levels is not None:
         # remove cmap keyword that might have been added earlier
         _ = kwargs.pop('cmap', None)
         conts = plt.contour(data, levels, linewidths=0.5,
@@ -545,21 +548,21 @@ def saveMap(outfile, fig=None, orig_size=None, dpi=100):
 
     fig (Matplotlib figure instance): figure you want to save as the image
 
-    orig_size (tuple): width, height of the original image used to maintain 
+    orig_size (tuple): width, height of the original image used to maintain
     aspect ratio.
-    
+
     dpi (integer): image resolution.
     '''
-    if fig==None:
+    if fig is None:
         fig = plt.gcf()
     ax = fig.gca()
     ax.set_axis_off()
-    ax.set_position([0,0,1,1])
+    ax.set_position([0, 0, 1, 1])
     ax.set_aspect('auto')
     fig.set_frameon(False)
-    
+
     if orig_size: # Aspect ratio scaling if required
-        w,h = orig_size
+        w, h = orig_size
         fig.set_size_inches(w/float(dpi), h/float(dpi), forward=False)
-    
+
     fig.savefig(outfile, dpi=dpi)
