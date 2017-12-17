@@ -9,10 +9,9 @@ Geophysics Labs, 2017
 __version__ = "0.2.0"
 
 import rasterio
-from interpies.grid import Grid
-#import grid
+from interpies.grid import Grid, from_dataset
 
-def open(inputFile, crs=None, name=None, nodata_value=None, 
+def open(inputFile, crs=None, name=None, nodata_value=None,
          scale_factor=None, **kwargs):
     """Open a dataset using the rasterio open function.
     This returns a grid object, which is basically a 2D array with attributes
@@ -26,7 +25,7 @@ def open(inputFile, crs=None, name=None, nodata_value=None,
         which in turn can be any format supported by GDAL.
     crs : string, optional
         Coordinate reference system. This is optional as the CRS will normally
-        be read by rasterio and the suitable GDAL driver. This can be used in 
+        be read by rasterio and the suitable GDAL driver. This can be used in
         case the CRS definition is absent from the raster file (for example
         when the input is a simple XYZ text file).
     nodata_value : float, optional
@@ -40,6 +39,6 @@ def open(inputFile, crs=None, name=None, nodata_value=None,
     """
     dataset = rasterio.open(inputFile, nodata=nodata_value, **kwargs)
 
-    return Grid.from_dataset(dataset, crs=crs, name=name,
-                             nodata_value=nodata_value,
-                             scale_factor=scale_factor)
+    return from_dataset(dataset, crs=crs, name=name,
+                        nodata_value=nodata_value,
+                        scale_factor=scale_factor)

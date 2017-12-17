@@ -23,8 +23,8 @@ class Grid(object):
     A class containing a grid object.
     '''
     ### object creation ###
-    def __init__(self, data, transform=None, name='', nodata_value=None,
-                 filename='', mask=None, crs=None, copyFrom=None):
+    def __init__(self, data, transform=None, nodata_value=None,
+                 name='Unknown', filename='Unknown', mask=None, crs=None, copyFrom=None):
         '''
         Create a new grid object by combining a 2D array (data) and georeferecing
         information (rasterio transform). The transform is an affine transformation
@@ -54,6 +54,7 @@ class Grid(object):
         self.filename = filename
         self.nrows, self.ncols = data.shape
         self.cellsize = self.transform[0]  # requires rasterio > 1.0
+        self.y_cellsize = -self.transform[4]  # requires rasterio > 1.0
         if crs is not None:
             self.crs = crs
         else:
@@ -87,37 +88,6 @@ class Grid(object):
                                                      self.transform)
         self.extent = [w, e, s, n]
 
-
-    def from_dataset(dataset, band=1, crs=None, name=None, nodata_value=None,
-                     scale_factor=None):
-        '''
-        Create a new grid object from a rasterio dataset.
-        Used by interpies.open().
-        '''
-        # extract name of the dataset (without extension)
-        if name is None:
-            name = os.path.basename(os.path.splitext(dataset.name)[0])
-        # nodata value
-        if nodata_value is None:
-            nodata_value = dataset.nodata
-
-        # coordinate system
-        if crs is None and dataset.crs is not None:
-            if dataset.crs.is_epsg_code:
-                # get the EPSG code
-                crs = dataset.crs['init']
-            else:
-                # get a PROJ.4 string
-                crs = dataset.crs.to_string()
-
-        # read the data from the specified band and apply scaling
-        if scale_factor is not None:
-            data = scale_factor * dataset.read(band)
-        else:
-            data = dataset.read(band)
-
-        return Grid(data, dataset.transform, name=name,
-                    nodata_value=nodata_value, filename=dataset.name, crs=crs)
 
     def save(self, outputFile):
         '''
@@ -203,7 +173,7 @@ class Grid(object):
         if src_srs is None:
             if self.crs == 'Unknown':
                 raise ValueError('The coordinate system of the input data '
-                                 'is undefined. Please set it up in the grid or '
+                                 'is undefined. Please set it up in the Grid or '
                                  'use the src_srs argument.')
             else:
                 src_srs = self.crs
@@ -218,7 +188,7 @@ class Grid(object):
 
         # open output file and create grid object
         dataset = rasterio.open(outputFile)
-        return Grid.from_dataset(dataset)
+        return from_dataset(dataset)
 
 
     def scale(self, scale_factor):
@@ -292,8 +262,8 @@ class Grid(object):
         print('Filename: ' + self.filename)
         print('Coordinate reference system: ' + self.crs)
         print('Grid size: {:d} columns x {:d} rows'.format(self.ncols, self.nrows))
-        print('Cell size: {:.4g}'.format(self.cellsize))
-        print('Lower left corner (pixel centre): ({:.3f},{:.3f})'
+        print('Cell size: {:.4g} x {:.4g}'.format(self.cellsize, self.y_cellsize))
+        print('Lower left corner (pixel centre): ({:.3f}, {:.3f})'
               .format(self.xll, self.yll))
         print('Grid extent (outer limits): ' +
               'west: {:.3f}, east: {:.3f}, south: {:.3f}, north: {:.3f}'
@@ -838,4 +808,61 @@ class Grid(object):
         output = self.data - upCont1
 
         return Grid(output, self.transform, name=self.name+'_HPUC{}'.format(z))
-     
+
+#==============================================================================
+# Functions
+#==============================================================================
+def from_dataset(dataset, band=1, crs=None, name=None,
+                 nodata_value=None, scale_factor=None):
+    '''
+    Create a new grid object from a rasterio dataset.
+    Used by interpies.open().
+    '''
+    # extract name of the dataset (without extension)
+    if name is None:
+        name = os.path.basename(os.path.splitext(dataset.name)[0])
+    # nodata value
+    if nodata_value is None:
+        nodata_value = dataset.nodata
+
+    # coordinate system
+    if crs is None and dataset.crs is not None:
+        if dataset.crs.is_epsg_code:
+            # get the EPSG code
+            crs = dataset.crs['init']
+        else:
+            # get a PROJ.4 string
+            crs = dataset.crs.to_string()
+
+    # read the data from the specified band and apply scaling
+    if scale_factor is not None:
+        data = scale_factor * dataset.read(band)
+    else:
+        data = dataset.read(band)
+
+    return Grid(data, dataset.transform, name=name,
+                nodata_value=nodata_value, filename=dataset.name, crs=crs)
+
+def from_array(array, west=0, north=0, cellsize=100, y_cellsize=100, crs=None,
+               name='Unknown', filename='Unknown', nodata_value=None):
+    '''
+    Create a new grid object from a numpy array.
+    Used by interpies.open().
+    '''
+    # name
+    if name == 'Unknown':
+        if filename != 'Unknown':
+            name = os.path.basename(os.path.splitext(filename)[0])
+        else:
+            name = 'Unknown'
+            filename = 'Unknown'
+        
+    # nodata value
+    if nodata_value is None:
+        nodata_value = np.nan
+
+    # transform
+    transf = rasterio.transform.from_origin(west, north, cellsize, y_cellsize)
+
+    return Grid(array, transf, name=name,
+                nodata_value=nodata_value, filename=filename, crs=crs)

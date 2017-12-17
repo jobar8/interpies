@@ -409,7 +409,8 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
         kwargs['extent'] = source.extent
         data = source.data
         if title is None:
-            title = source.name
+            if source.name != 'Unknown':
+                title = source.name
     else:
         data = source.copy()
 
