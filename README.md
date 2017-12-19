@@ -66,6 +66,12 @@ Then run the following command in the repository directory:
 
 `$ python setup.py install`
 
+#### Upgrading
+
+Because a version of `rasterio` > 1.0 is not directly available to `pip`, upgrading an existing installation of `interpies` must be done without trying to upgrade dependencies (or do it separately). Here is the command:
+
+`pip install --upgrade --no-deps interpies`
+
 ## Examples
 
 The basic usage of `interpies` is to load gridded data into a *grid* object, which then gives access to various methods for transforming and displaying the data. So, loading magnetic data and creating a map with the grid is simply done with:

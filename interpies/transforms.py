@@ -21,12 +21,12 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import Pipeline
 
 ### definitions
-pi=np.pi
+pi = np.pi
 
 # kernels for convolution filters
-derfilt3 = np.array([-0.5,0,0.5],np.float32)
-derfilt5 = np.array([1,-8,0,8,-1],np.float32)/12  # Five-point stencil vector
-prewitt1d = np.array([-1,0,1],np.float32)/2
+derfilt3 = np.array([-0.5, 0, 0.5], np.float32)
+derfilt5 = np.array([1, -8, 0, 8, -1], np.float32)/12  # Five-point stencil vector
+prewitt1d = np.array([-1, 0, 1], np.float32)/2
 
 #===============================================================================
 # miscellaneous functions
@@ -36,12 +36,12 @@ def replace_edges(data, ncells=1):
     """Replace the values at the edges of an array with the values calculated 
     with reflection padding. Useful to correct edge effects due to convolution 
     filters.
-    """    
-    return np.pad(data[ncells:-ncells,ncells:-ncells],
+    """
+    return np.pad(data[ncells:-ncells, ncells:-ncells],
                   ncells, mode='reflect', reflect_type='odd')
-    
+
 def fill_nodata(data, invalid=None):
-    """Replace the value of invalid 'data' cells (indicated by 'invalid') 
+    """Replace the value of invalid 'data' cells (indicated by 'invalid')
     by the value of the nearest valid data cell. Not very pretty but enough
     for making sure the calculation works.
 
@@ -61,11 +61,11 @@ def fill_nodata(data, invalid=None):
     http://stackoverflow.com/a/9262129
     """
     if np.any(np.isnan(data)):
-        if invalid is None: 
+        if invalid is None:
             invalid = np.isnan(data)
-        ind = nd.distance_transform_edt(invalid, 
-                                    return_distances=False, return_indices=True)
-                                        
+        ind = nd.distance_transform_edt(invalid,
+                                        return_distances=False,
+                                        return_indices=True)
         return data[tuple(ind)]
     else:
         return data
@@ -77,24 +77,24 @@ def simple_resample(data, sampling=2):
     of the grid is unchanged.
     '''
         
-    return np.flipud(np.flipud(data)[::sampling,::sampling])
+    return np.flipud(np.flipud(data)[::sampling, ::sampling])
     
 def find_trend(X, data, degree=1, returnModel=False):
     '''
     Calculate trend in 2D data. The fit is made with a polynomial function of 
     chosen degree. A least-square method is used for the fit.
     '''
-    nrows,ncols = data.shape
+    nrows, ncols = data.shape
     # get location of NaNs
     mask = np.isnan(data)
     
     # Fit data with a polynomial surface (or a plane if degree=1)
     model = Pipeline([('poly', PolynomialFeatures(degree)),
                       ('linear', LinearRegression())])
-    model.fit(X[~mask.flatten(),:], data[~mask])
+    model.fit(X[~mask.flatten(), :], data[~mask])
     
     # calculate resulting trend
-    trend = model.predict(X).reshape((nrows,ncols))
+    trend = model.predict(X).reshape((nrows, ncols))
     
     if returnModel:
         return model
@@ -108,10 +108,9 @@ def stats(data):
     mean = np.nanmean(data)
     sigma = np.nanstd(data)
     minimum = np.nanmin(data)
-    maximum = np.nanmax(data)
-    
+    maximum = np.nanmax(data)    
     return (mean, sigma, minimum, maximum)
-    
+
 #==============================================================================
 # Derivatives with Savitzky-Golay coeficients
 #==============================================================================
@@ -618,8 +617,8 @@ def unpad_full(data, nrows, ncols):
 
 # put everything together
 def fourier_transform(data, cellsize, trans='dx', order=1, doEdges=True, ncells=2, 
-                  padding='full', mode='reflect', reflect_type='odd', 
-                  eps=1e-6, z=500):
+                      padding='full', mode='reflect', reflect_type='odd', 
+                      eps=1e-6, z=500):
     '''
     Calculate transforms in the frequency domain.
     
