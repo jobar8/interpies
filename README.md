@@ -35,9 +35,13 @@ Optional:
 
 #### Dependencies
 
-I recommend using [Anaconda](https://www.continuum.io/what-is-anaconda) for the installation of both Python and most of the dependencies.
+I recommend using [Anaconda](https://www.anaconda.com/what-is-anaconda/) for the installation of both Python and most of the dependencies.
 
-Once Anaconda has been installed, I would suggest creating a new environment for working with `interpies`. You could start with this command:
+Once Anaconda has been installed, make sure the `conda-forge` channel is added to your configuration:
+
+`conda config --add channels conda-forge`
+
+Next, I would suggest creating a new environment for working with `interpies`. You could start with this command:
 
 `conda create --name interpies gdal scikit-learn scikit-image matplotlib ipykernel obspy python=3.6`
 
