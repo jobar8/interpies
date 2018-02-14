@@ -397,7 +397,7 @@ class Grid(object):
                                       colorbar=colorbar, cb_contours=cb_contours,
                                       cb_ticks=cb_ticks, std_range=std_range,
                                       figsize=figsize, title=title, **kwargs)
-        else: 
+        else:
             # set origin to ensure that both grid and contours get the same origin
             return graphics.imshow_hs(self, ax=ax, cmap=cmap, cmap_norm=cmap_norm,
                                       hs=hs, zf=zf, azdeg=azdeg, altdeg=altdeg,
@@ -408,6 +408,45 @@ class Grid(object):
                                       cb_ticks=cb_ticks, std_range=std_range,
                                       figsize=figsize, title=title,
                                       origin='upper', **kwargs)
+
+
+    def save_map(self, output_file, scale=1, cmap='geosoft', cmap_norm='equalize', hs=True,
+                 zf=10, azdeg=45, altdeg=45, dx=1, dy=1, hs_contrast=1.5, cmap_brightness=1.0,
+                 blend_mode='alpha', alpha=0.7, contours=False, **kwargs):
+        '''
+        Make a map using the `show` method and save to file.
+        The parameters are the same as `show`, expect there is no colorbar and
+        there are these additional parameters:
+        output_file : string
+            Path to the image file. The extension controls the output format.
+        scale : float
+            Coefficient to set the size of the output image. With a scale of 1,
+            the image will have the same size (columns and rows) as the grid.
+            To make an image smaller than the grid, use a scale smaller than 1.
+        '''
+        if 'origin' in kwargs:
+            ax = graphics.imshow_hs(self, ax=None, cmap=cmap, cmap_norm=cmap_norm,
+                                    hs=hs, zf=zf, azdeg=azdeg, altdeg=altdeg,
+                                    dx=dx, dy=dy, hs_contrast=hs_contrast,
+                                    cmap_brightness=cmap_brightness, blend_mode=blend_mode,
+                                    alpha=alpha, contours=contours,
+                                    colorbar=False, **kwargs)
+        else:
+            # set origin to ensure that both grid and contours get the same origin
+            ax = graphics.imshow_hs(self, ax=None, cmap=cmap, cmap_norm=cmap_norm,
+                                    hs=hs, zf=zf, azdeg=azdeg, altdeg=altdeg,
+                                    dx=dx, dy=dy, hs_contrast=hs_contrast,
+                                    cmap_brightness=cmap_brightness, blend_mode=blend_mode,
+                                    alpha=alpha, contours=contours,
+                                    colorbar=False, origin='upper', **kwargs)
+
+        fig1 = ax.get_figure()
+        graphics.save_map(output_file,
+                          fig=fig1,
+                          size=(scale*self.ncols, scale*self.nrows))
+
+        # clear figure to avoid displaying the result
+        fig1.clear()
 
 
     ### Filters
