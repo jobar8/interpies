@@ -410,11 +410,12 @@ class Grid(object):
                                       origin='upper', **kwargs)
 
 
-    def save_map(self, output_file, scale=1, cmap='geosoft', cmap_norm='equalize', hs=True,
-                 zf=10, azdeg=45, altdeg=45, dx=1, dy=1, hs_contrast=1.5, cmap_brightness=1.0,
-                 blend_mode='alpha', alpha=0.7, contours=False, **kwargs):
+    def save_image(self, output_file, scale=1, cmap='geosoft', cmap_norm='equalize', hs=True,
+                   zf=10, azdeg=45, altdeg=45, dx=1, dy=1, hs_contrast=1.5, cmap_brightness=1.0,
+                   blend_mode='alpha', alpha=0.7, contours=False, **kwargs):
         '''
-        Make a map using the `show` method and save to file.
+        Make a map of the grid using the `show` method and save the image to file without
+        labels, title and colorbar.
         The parameters are the same as `show`, expect there is no colorbar and
         there are these additional parameters:
         output_file : string
@@ -441,9 +442,9 @@ class Grid(object):
                                     colorbar=False, origin='upper', **kwargs)
 
         fig1 = ax.get_figure()
-        graphics.save_map(output_file,
-                          fig=fig1,
-                          size=(scale*self.ncols, scale*self.nrows))
+        graphics.save_image(output_file,
+                            fig=fig1,
+                            size=(scale*self.ncols, scale*self.nrows))
 
         # clear figure to avoid displaying the result
         fig1.clear()

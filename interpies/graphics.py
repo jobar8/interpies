@@ -538,7 +538,7 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
     return ax
 
 
-def save_map(output_file, fig=None, size=None, dpi=100):
+def save_image(output_file, fig=None, size=None, dpi=100):
     '''
     Save a Matplotlib figure as an image without borders or frames. The format
     is controlled by the extension of the output file name.
@@ -547,13 +547,10 @@ def save_map(output_file, fig=None, size=None, dpi=100):
     ----------
     output_file : string
         Path to output file.
-
     fig : Matplotlib figure instance
         Figure you want to save as the image
-
     size : tuple (w, h)
         Width and height of the output image in pixels.
-
     dpi : integer
         Image resolution.
     '''
