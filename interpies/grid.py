@@ -230,7 +230,7 @@ class Grid(object):
                     name=self.name+'_detrend', nodata_value=self.nodata)
 
 
-    def fill_nodata(self, method=None):
+    def fill_nodata(self):
         '''Simple filling algorithm to remove NaNs.
         '''
         filled = transforms.fill_nodata(self.data)
@@ -397,17 +397,17 @@ class Grid(object):
                                       colorbar=colorbar, cb_contours=cb_contours,
                                       cb_ticks=cb_ticks, std_range=std_range,
                                       figsize=figsize, title=title, **kwargs)
-        else:
-            # set origin to ensure that both grid and contours get the same origin
-            return graphics.imshow_hs(self, ax=ax, cmap=cmap, cmap_norm=cmap_norm,
-                                      hs=hs, zf=zf, azdeg=azdeg, altdeg=altdeg,
-                                      dx=dx, dy=dy, hs_contrast=hs_contrast,
-                                      cmap_brightness=cmap_brightness, blend_mode=blend_mode,
-                                      alpha=alpha, contours=contours,
-                                      colorbar=colorbar, cb_contours=cb_contours,
-                                      cb_ticks=cb_ticks, std_range=std_range,
-                                      figsize=figsize, title=title,
-                                      origin='upper', **kwargs)
+
+        # set origin to ensure that both grid and contours get the same origin
+        return graphics.imshow_hs(self, ax=ax, cmap=cmap, cmap_norm=cmap_norm,
+                                  hs=hs, zf=zf, azdeg=azdeg, altdeg=altdeg,
+                                  dx=dx, dy=dy, hs_contrast=hs_contrast,
+                                  cmap_brightness=cmap_brightness, blend_mode=blend_mode,
+                                  alpha=alpha, contours=contours,
+                                  colorbar=colorbar, cb_contours=cb_contours,
+                                  cb_ticks=cb_ticks, std_range=std_range,
+                                  figsize=figsize, title=title,
+                                  origin='upper', **kwargs)
 
 
     def save_image(self, output_file, scale=1, cmap='geosoft', cmap_norm='equalize', hs=True,
@@ -449,6 +449,8 @@ class Grid(object):
         # clear figure to avoid displaying the result
         fig1.clear()
 
+        print('The grid was successfully saved as an image in {}'.format(output_file))
+
 
     ### Filters
     def smooth(self, method='SG', deg=3, win=5, doEdges=True, sigma=1):
@@ -474,7 +476,7 @@ class Grid(object):
         return Grid(output, self.transform, name=self.name+'_laplacian')
 
 
-    ### Derivatives 
+    ### Derivatives
 
     # horizontal derivatives
     def dx(self, method='SG', deg=3, win=5, doEdges=True, fs_tap=5, **kwargs):
@@ -660,7 +662,7 @@ class Grid(object):
 
     # tilt angle
     def tilt(self, hgm_method='SG', dz_method='isvd', deg=3, win=5,
-             doEdges=True, fs_tap=5, alpha=1, **kwargs):
+             doEdges=True, fs_tap=5, alpha=1):
         '''Calculate the tilt angle of anomalies.
         The alpha option implements the downward continuation of the tilt angle
         as described by Cooper (2016).
@@ -675,14 +677,14 @@ class Grid(object):
         hgm_grid = self.hgm(method=hgm_method, deg=deg, win=win, doEdges=doEdges,
                             fs_tap=fs_tap)
         # vertical derivative
-        if dz_method.lower() == 'isvd':    
+        if dz_method.lower() == 'isvd':
             dz_grid = self.isvd(method=hgm_method, order=1, deg=deg, win=win,
                                 doEdges=doEdges, fs_tap=fs_tap)
         else:
             dz_grid = self.dz(method='fourier', order=1)
         # calculate tilt angle (in degrees)
         output = np.arctan(alpha * dz_grid.data / hgm_grid.data) * 180 / np.pi
-        
+
         return Grid(output, self.transform, name=self.name+'_tilt')
 
 
@@ -820,9 +822,9 @@ class Grid(object):
         Parameters
         ----------
         z: float
-            Amount of upward continuation. In practice, this is the value 
+            Amount of upward continuation. In practice, this is the value
             to add to the observation height (same units as the cell size).
-        **kwargs are passed to the Fourier transform. 
+        **kwargs are passed to the Fourier transform.
         '''
         output = transforms.fourier_transform(self.data, self.cellsize,
                                               trans='upcont', z=z, **kwargs)
@@ -834,7 +836,7 @@ class Grid(object):
     def hp_filter_uc(self, z=5000, **kwargs):
         '''Apply a high-pass filter by subtracting an upward continued version
         of the data.
-        
+
         Parameters
         ----------
         z: float
@@ -896,7 +898,7 @@ def from_array(array, west=0, north=0, cellsize=100, y_cellsize=100, crs=None,
         else:
             name = 'Unknown'
             filename = 'Unknown'
-        
+
     # nodata value
     if nodata_value is None:
         nodata_value = np.nan
