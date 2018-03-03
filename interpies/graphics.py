@@ -537,33 +537,31 @@ def imshow_hs(source, ax=None, cmap='geosoft', cmap_norm='equalize', hs=True,
     # return Axes instance for re-use
     return ax
 
-#==============================================================================
-# saveMap
-#==============================================================================
-def saveMap(outfile, fig=None, orig_size=None, dpi=100):
+
+def save_image(output_file, fig=None, size=None, dpi=100):
     '''
-    Save a Matplotlib figure as an image without borders or frames.
+    Save a Matplotlib figure as an image without borders or frames. The format
+    is controlled by the extension of the output file name.
+
     Parameters
     ----------
-    outfile (string): Path to output file.
-
-    fig (Matplotlib figure instance): figure you want to save as the image
-
-    orig_size (tuple): width, height of the original image used to maintain
-    aspect ratio.
-
-    dpi (integer): image resolution.
+    output_file : string
+        Path to output file.
+    fig : Matplotlib figure instance
+        Figure you want to save as the image
+    size : tuple (w, h)
+        Width and height of the output image in pixels.
+    dpi : integer
+        Image resolution.
     '''
     if fig is None:
         fig = plt.gcf()
     ax = fig.gca()
     ax.set_axis_off()
     ax.set_position([0, 0, 1, 1])
-    ax.set_aspect('auto')
-    fig.set_frameon(False)
 
-    if orig_size: # Aspect ratio scaling if required
-        w, h = orig_size
-        fig.set_size_inches(w/float(dpi), h/float(dpi), forward=False)
+    if size:
+        w, h = size
+        fig.set_size_inches(w/dpi, h/dpi, forward=False)
 
-    fig.savefig(outfile, dpi=dpi)
+    fig.savefig(output_file, dpi=dpi)
