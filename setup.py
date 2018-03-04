@@ -51,7 +51,7 @@ setup(
         'numpy',
         'scipy',
         'matplotlib',
-        'rasterio>=1.0',
+        'rasterio>=1.0a9',
         'scikit-learn',
         'scikit-image'
     ],
