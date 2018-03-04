@@ -6,7 +6,7 @@ Interpies - a libray for the interpretation of gravity and magnetic data.
 Geophysics Labs, 2018
 """
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 import rasterio
 from interpies.grid import Grid, from_dataset

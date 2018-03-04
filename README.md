@@ -18,7 +18,7 @@ Interpies requires `Python 3.x` and makes use of the following libraries:
 
 * `numpy`
 * `matplotlib`
-* `rasterio` version > 1.0
+* `rasterio` version > 1.0 (alpha)
 * `gdal`
 * `scikit-learn`
 * `scikit-image`
@@ -28,6 +28,7 @@ Optional:
 * `obspy` for reading and writing SEG-Y files (seismic data)
 * `geopandas` for reading survey line data
 * `ipykernel` for working with `interpies` in Jupyter notebooks
+* `basemap` and `cartopy` for making maps
 
 ### Installation
 
@@ -43,7 +44,7 @@ Next, I would suggest creating a new environment for working with `interpies`. Y
 
 `conda create --name interpies gdal scikit-learn scikit-image matplotlib ipykernel obspy python=3.6`
 
-Next, install `rasterio`. You could try using `conda install rasterio`. However, the only version available on conda-forge might be the old 0.36. The alpha version 1.09a or better is required for `interpies` to work. So carefully check which version is going to be installed first.
+Next, install `rasterio`. You could try using `conda install rasterio`. However, the only version available on conda-forge might be the old 0.36. The alpha version 1.0a9 or better is required for `interpies` to work. So carefully check which version is going to be installed first.
 
 On **Windows**, if the version does not match, simply download the binaries for the required version from Christoph Gohlke's [website](http://www.lfd.uci.edu/~gohlke/pythonlibs/#rasterio). Then run, for example:
 
