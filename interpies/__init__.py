@@ -9,10 +9,11 @@ Geophysics Labs, 2018
 __version__ = "0.3.1"
 
 import rasterio
+
 from interpies.grid import Grid, from_dataset
 
-def open(inputFile, crs=None, name=None, nodata_value=None,
-         scale_factor=None, **kwargs):
+
+def open(inputFile, crs=None, name=None, nodata_value=None, scale_factor=None, **kwargs):
     """Open a dataset using the rasterio open function.
     This returns a grid object, which is basically a 2D array with attributes
     attached to it. In other words, grids are rasters with only one band.
@@ -39,6 +40,4 @@ def open(inputFile, crs=None, name=None, nodata_value=None,
     """
     dataset = rasterio.open(inputFile, nodata=nodata_value, **kwargs)
 
-    return from_dataset(dataset, crs=crs, name=name,
-                        nodata_value=nodata_value,
-                        scale_factor=scale_factor)
+    return from_dataset(dataset, crs=crs, name=name, nodata_value=nodata_value, scale_factor=scale_factor)
