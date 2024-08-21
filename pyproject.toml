@@ -1,0 +1,42 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "interpies"
+dynamic = ["version"]
+description = "A collection of functions for reading, displaying, transforming and analyzing geophysical data."
+readme = "README.md"
+authors = [{ name = "Joseph Barraud"}]
+keywords = ["geophysics raster gdal gravimetry magnetometry seismic"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "matplotlib",
+    "numpy",
+    "rasterio>=1.1",
+    "scikit-image",
+    "scikit-learn",
+    "scipy",
+]
+
+[project.urls]
+Homepage = "https://github.com/jobar8/interpies"
+
+[tool.hatch.version]
+path = "interpies/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = ["/interpies"]
