@@ -12,6 +12,8 @@ import os.path
 
 import numpy as np
 import rasterio
+from rasterio import transform as rio_transform
+from rasterio import dtypes
 
 # import local modules
 from interpies import graphics, spatial, transforms
@@ -59,7 +61,7 @@ class Grid:
         if transform is not None:
             self.transform = transform
         else:
-            self.transform = rasterio.transform.from_origin(0, 0, 100, 100)
+            self.transform = rio_transform.from_origin(0, 0, 100, 100)
 
         # define grid properties
         self.name = name
@@ -73,7 +75,7 @@ class Grid:
             self.crs = "Unknown"
 
         # lower left corner (pixel centre)
-        self.xll, self.yll = rasterio.transform.xy(self.transform, self.nrows - 1, 0, offset="center")
+        self.xll, self.yll = rio_transform.xy(self.transform, self.nrows - 1, 0, offset="center")
 
         # nodata value
         self.nodata = nodata_value
@@ -93,7 +95,7 @@ class Grid:
         # calculate extent in matplotlib sense
         # matplotlib extent: `left, right, bottom, top`
         # rasterio bounds: `west, south, east, north`
-        w, s, e, n = rasterio.transform.array_bounds(self.nrows, self.ncols, self.transform)
+        w, s, e, n = rio_transform.array_bounds(self.nrows, self.ncols, self.transform)
         self.extent = [w, e, s, n]
 
     def save(self, outputFile):
@@ -108,7 +110,7 @@ class Grid:
             height=self.nrows,
             width=self.ncols,
             count=1,
-            dtype=rasterio.dtypes.float64,
+            dtype=dtypes.float64,
             crs=self.crs,
             transform=self.transform,
         )
@@ -133,14 +135,14 @@ class Grid:
         """
         Clip grid.
         """
-        rows, cols = rasterio.transform.rowcol(self.transform, [xmin, xmax], [ymin, ymax])
+        rows, cols = rio_transform.rowcol(self.transform, [xmin, xmax], [ymin, ymax])
 
         data_selection = self.data[rows[1] : rows[0] + 1, cols[0] : cols[1] + 1]
 
         # new origin
-        new_west, new_north = rasterio.transform.xy(self.transform, rows[1], cols[0], offset="ul")
+        new_west, new_north = rio_transform.xy(self.transform, rows[1], cols[0], offset="ul")
         # new transform
-        new_transf = rasterio.transform.from_origin(new_west, new_north, self.cellsize, self.cellsize)
+        new_transf = rio_transform.from_origin(new_west, new_north, self.cellsize, self.cellsize)
 
         return Grid(data_selection, new_transf, name=self.name + "_clip", nodata_value=self.nodata)
 
@@ -156,7 +158,7 @@ class Grid:
         new_west = self.extent[0]  # unchanged
         new_north = self.extent[2] + new_height * new_cellsize
         # new transform
-        new_transf = rasterio.transform.from_origin(new_west, new_north, new_cellsize, new_cellsize)
+        new_transf = rio_transform.from_origin(new_west, new_north, new_cellsize, new_cellsize)
 
         return Grid(new_data, new_transf, name=self.name + f"_res{sampling}", nodata_value=self.nodata)
 
@@ -948,6 +950,6 @@ def from_array(
         nodata_value = np.nan
 
     # transform
-    transf = rasterio.transform.from_origin(west, north, cellsize, y_cellsize)
+    transf = rio_transform.from_origin(west, north, cellsize, y_cellsize)
 
     return Grid(array, transf, name=name, nodata_value=nodata_value, filename=filename, crs=crs)
