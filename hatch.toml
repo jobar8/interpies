@@ -1,4 +1,0 @@
-
-[envs.default]
-installer = "uv"
-path = ".env"
