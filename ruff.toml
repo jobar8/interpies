@@ -1,0 +1,17 @@
+line-length = 120
+
+[lint]
+extend-select = ["I", "B"]
+ignore = []
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+[lint.per-file-ignores]
+# Ignore `E402` (import violations) in all `__init__.py` files, and in selected subdirectories.
+"__init__.py" = ["E402", "F403", "F405"]
+"**/{tests,docs,tools}/*" = ["E402"]
+
+[format]
+quote-style = "single"
