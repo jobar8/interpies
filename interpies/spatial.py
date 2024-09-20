@@ -47,14 +47,14 @@ def project_points(inputPoints, s_srs=4326, t_srs=23029):
     # Loop through the points
     outputPoints = []
     for XY in inputPoints:
-        point = ogr.CreateGeometryFromWkt("POINT ({} {})".format(*XY))
+        point = ogr.CreateGeometryFromWkt('POINT ({} {})'.format(*XY))
         point.Transform(coordTrans)
         outputPoints.append([point.GetX(), point.GetY()])
 
     return np.asarray(outputPoints)
 
 
-def extent(xll, yll, cellsize, nrows, ncols, scale=1.0, registration="gridlines"):
+def extent(xll, yll, cellsize, nrows, ncols, scale=1.0, registration='gridlines'):
     """
     Return the extent (xmin,xmax,ymin,ymax) of an image given the coordinates of
     the lower-left corner, the cellsize and the numbers of rows and columns.
@@ -65,7 +65,7 @@ def extent(xll, yll, cellsize, nrows, ncols, scale=1.0, registration="gridlines"
     -------
     (xmin,xmax,ymin,ymax)
     """
-    if registration == "gridlines":
+    if registration == 'gridlines':
         xmin = xll * scale
         xmax = (xll + (ncols - 1) * cellsize) * scale
         ymin = yll * scale
@@ -134,7 +134,7 @@ def warp(
     xmax=None,
     ymin=None,
     ymax=None,
-    method="bilinear",
+    method='bilinear',
 ):
     """
     Image reprojection and warping utility, with option to clip.
@@ -169,25 +169,25 @@ def warp(
                 Lanczos windowed sinc resampling.
 
     """
-    command = "gdalwarp -overwrite"
+    command = 'gdalwarp -overwrite'
     if src_srs is not None:
         command = command + f' -s_srs "{src_srs}"'
     command = command + f' -t_srs "{dst_srs}"'
     if doClip:
-        command = command + f" -te {xmin} {ymin} {xmax} {ymax}"
-    command = command + f" -tr  {xsize} {ysize}"
-    command = command + f" -r {method}"
+        command = command + f' -te {xmin} {ymin} {xmax} {ymax}'
+    command = command + f' -tr  {xsize} {ysize}'
+    command = command + f' -r {method}'
     command = command + f' "{inputFile}" "{outputFile}"'
 
-    print("GDAL command\n------------\n" + command)
-    print("\nOutput\n------")
+    print('GDAL command\n------------\n' + command)
+    print('\nOutput\n------')
 
     # Run the command
     try:
         retMessage = subprocess.check_output(command, shell=False)
         # remove 'b' letter at the beginning of the string
-        retMessage = retMessage.decode("utf-8")
+        retMessage = retMessage.decode('utf-8')
     except subprocess.CalledProcessError as err:
-        retMessage = "ERROR. GDAL returned code {}.\n{}\n".format(err.returncode, err.output.decode("utf-8"))
+        retMessage = 'ERROR. GDAL returned code {}.\n{}\n'.format(err.returncode, err.output.decode('utf-8'))
 
     return retMessage
