@@ -5,15 +5,15 @@ grid.py:
     Sub-module for the definition of the grid class
 
 @author: Joseph Barraud
-Geophysics Labs, 2017
+Geophysics Labs, 2017-2024
 """
 
 import os.path
 
 import numpy as np
 import rasterio
-import rasterio.transform
 import rasterio.dtypes
+import rasterio.transform
 
 # import local modules
 from interpies import graphics, spatial, transforms
@@ -131,11 +131,13 @@ class Grid:
         return pts[:, 1], pts[:, 0], self.data.flatten(), (self.nrows, self.ncols)
 
     ### Grid methods
-    def clip(self, xmin, xmax, ymin, ymax):
+    def clip(self, xmin, xmax, ymin, ymax) -> 'Grid':
         """
         Clip grid.
         """
         rows, cols = rasterio.transform.rowcol(self.transform, [xmin, xmax], [ymin, ymax])
+        rows = np.clip(rows, 0, None)
+        cols = np.clip(cols, 0, None)
         data_selection = self.data[rows[1] : rows[0] + 1, cols[0] : cols[1] + 1]
 
         # new origin
