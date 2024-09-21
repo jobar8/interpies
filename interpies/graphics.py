@@ -5,15 +5,16 @@ graphics.py:
     Functions for creating and manipulating graphics, colormaps and plots.
 
 @author: Joseph Barraud
-Geophysics Labs, 2017
+Geophysics Labs, 2017-2024
 """
 
 import warnings
+from typing import Literal
 
+import matplotlib
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import cm
 from skimage import exposure
 
 # import local modules
@@ -30,7 +31,7 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 def make_colormap(table, name='CustomMap'):
     """
     Return a LinearSegmentedColormap. The colormap is also registered with
-    plt.register_cmap(cmap=my_cmap)
+    matplotlib.colormaps.register(cmap=my_cmap)
 
     Parameters
     ----------
@@ -48,8 +49,8 @@ def make_colormap(table, name='CustomMap'):
         cdict['green'].append([i / N, gre, gre])
         cdict['blue'].append([i / N, blu, blu])
 
-    new_cmap = mcolors.LinearSegmentedColormap(name, cdict)
-    plt.register_cmap(cmap=new_cmap)
+    new_cmap = mcolors.LinearSegmentedColormap(name, cdict)  # type: ignore
+    matplotlib.colormaps.register(cmap=new_cmap)
     return new_cmap
 
 
@@ -101,7 +102,7 @@ def plot_cmap(name='geosoft', n=256):
         as the plot is a square.
     """
     ncols = int(np.sqrt(n))
-    fig, ax = plt.subplots(figsize=(8, 8))
+    _, ax = plt.subplots(figsize=(8, 8))
     ax.imshow(np.arange(ncols**2).reshape(ncols, ncols), cmap=load_cmap(name), interpolation='nearest', aspect='equal')
     ax.set_xticklabels([])
     ax.set_yticklabels([])
@@ -154,7 +155,7 @@ def equalize_colormap(cmap, data, name='EqualizedMap'):
         cdict['blue'].append([n, blu, blu])
 
     # return new colormap
-    return mcolors.LinearSegmentedColormap(name, cdict)
+    return mcolors.LinearSegmentedColormap(name, cdict)  # type: ignore
 
 
 def clip_colormap(cm_array, data, min_percent=2, max_percent=98, name='ClippedMap'):
@@ -202,7 +203,7 @@ def clip_colormap(cm_array, data, min_percent=2, max_percent=98, name='ClippedMa
             cdict['blue'].append([n, blu, blu])
 
     # return new colormap
-    return mcolors.LinearSegmentedColormap(name, cdict)
+    return mcolors.LinearSegmentedColormap(name, cdict)  # type: ignore
 
 
 def modify_colormap(cmap, data=None, modif='autolevels', min_percent=2, max_percent=98, brightness=1.0):
@@ -286,7 +287,7 @@ def alpha_blend(rgb, intensity, alpha=0.7):
     return alpha * rgb + (1 - alpha) * intensity
 
 
-def imshow_hs(
+def imshow_hs(  # noqa: PLR0913
     source,
     ax=None,
     cmap='geosoft',
@@ -299,7 +300,7 @@ def imshow_hs(
     dy=1,
     hs_contrast=1.5,
     cmap_brightness=1.0,
-    blend_mode='alpha',
+    blend_mode: Literal['alpha', 'hsv', 'overlay', 'soft'] = 'alpha',
     alpha=0.7,
     contours=False,
     colorbar=True,
@@ -459,9 +460,9 @@ def imshow_hs(
 
     # create figure or retrieve the one already defined
     if ax:
-        fig = ax.get_figure()
+        _ = ax.get_figure()
     else:
-        fig, ax = plt.subplots(figsize=figsize)
+        _, ax = plt.subplots(figsize=figsize)
 
     # convert input data to a masked array
     data = np.ma.masked_array(data, np.isnan(data))
@@ -576,7 +577,7 @@ def save_image(output_file, fig=None, size=None, dpi=100):
         fig = plt.gcf()
     ax = fig.gca()
     ax.set_axis_off()
-    ax.set_position([0, 0, 1, 1])
+    ax.set_position((0, 0, 1, 1))
 
     if size:
         w, h = size
