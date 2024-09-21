@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+import rasterio.transform
 
 from interpies.grid import Grid
 
@@ -9,7 +10,7 @@ from interpies.grid import Grid
 @pytest.fixture
 def grid1() -> Grid:
     data = np.linspace([0, 0], [49, 49]).reshape((10, 10))
-    return Grid(data=data)
+    return Grid(data=data, name='test_grid')
 
 
 def test_grid_instance():
@@ -33,7 +34,7 @@ def test_clip1(grid1):
     """Test clipping with new area smaller than original."""
     new_grid = grid1.clip(110, 800, -805, -500)
     assert isinstance(new_grid, Grid)
-    assert new_grid.name == 'Unknown_clip'
+    assert new_grid.name == 'test_grid_clip'
     assert new_grid.extent == [100.0, 900.0, -900.0, -500.0]
     assert new_grid.xll == 150.0
     assert new_grid.yll == -850.0
@@ -60,3 +61,15 @@ def test_clip3(grid1: Grid):
     assert new_grid.ncols == 0
     assert new_grid.nrows == 1
     assert new_grid.data.size == 0
+
+
+def test_resample(grid1: Grid):
+    """Test the resample method."""
+    new_grid = grid1.resample(sampling=2)
+    assert new_grid.name == 'test_grid_res2'
+    assert new_grid.extent == [0.0, 1000.0, -1000.0, 0.0]
+    assert new_grid.xll == 100.0
+    assert new_grid.yll == -900.0
+    assert new_grid.ncols == 5
+    assert new_grid.nrows == 5
+    assert new_grid.transform == rasterio.transform.Affine(200, 0, 0, 0, -200, 0)
