@@ -2,8 +2,10 @@
 
 import pytest
 import matplotlib
+import matplotlib.colors as mcolors
+
 import numpy as np
-from interpies.graphics import cmap_to_array
+from interpies.graphics import cmap_to_array, load_cmap
 
 
 def test_cmap_to_array():
@@ -21,3 +23,11 @@ def test_cmap_to_array():
         array1 = cmap_to_array('not a colormap')
     with pytest.raises(ValueError):
         array1 = cmap_to_array([1, 2, 3, 4])  # type: ignore
+
+
+def test_load_cmap():
+    cmap1 = load_cmap('viridis')
+    assert isinstance(cmap1, mcolors.Colormap)
+    cmap2 = load_cmap('geosoft')
+    assert isinstance(cmap2, mcolors.Colormap)
+

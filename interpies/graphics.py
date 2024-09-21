@@ -75,15 +75,14 @@ def load_cmap(cmap='geosoft'):
     Return a colormap object.
     If input is a string, load first the colormap, otherwise return the cmap unchanged.
     """
-    # first suppose input is the name of the colormap
-    if cmap in icolors.datad:  # one of the additional colormaps in interpies colors module
-        cm_list = icolors.datad[cmap]
-        new_cm = mcolors.LinearSegmentedColormap.from_list(cmap, cm_list)
-        plt.register_cmap(cmap=new_cm)
-        return new_cm
-    elif cmap in cm.cmap_d:  # matplotlib colormaps + the new ones (viridis, inferno, etc.)
-        return cm.get_cmap(cmap)
-    elif isinstance(cmap, mcolors.Colormap):
+    if isinstance(cmap, str):
+        if cmap in icolors.datad:  # additional colormaps in interpies.colors module
+            cm_list = icolors.datad[cmap]
+            new_cm = mcolors.LinearSegmentedColormap.from_list(cmap, cm_list)
+            matplotlib.colormaps.register(cmap=new_cm)
+            return new_cm
+        return matplotlib.colormaps[cmap]
+    if isinstance(cmap, mcolors.Colormap):
         return cmap
     else:
         raise ValueError(f'Colormap {cmap} has not been recognised')
