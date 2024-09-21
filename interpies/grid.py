@@ -9,6 +9,7 @@ Geophysics Labs, 2017-2024
 """
 
 import os.path
+from typing import Literal
 
 import numpy as np
 import rasterio
@@ -297,7 +298,7 @@ class Grid:
         print(f'max = {maximum}')
 
     ### Graphics
-    def show(
+    def show(  # noqa: PLR0913
         self,
         ax=None,
         cmap='geosoft',
@@ -310,7 +311,7 @@ class Grid:
         dy=1,
         hs_contrast=1.5,
         cmap_brightness=1.0,
-        blend_mode='alpha',
+        blend_mode: Literal['alpha', 'hsv', 'overlay', 'soft'] = 'alpha',
         alpha=0.7,
         contours=False,
         colorbar=True,
@@ -475,7 +476,7 @@ class Grid:
             **kwargs,
         )
 
-    def save_image(
+    def save_image(  # noqa: PLR0913
         self,
         output_file,
         scale=1,
@@ -489,7 +490,7 @@ class Grid:
         dy=1,
         hs_contrast=1.5,
         cmap_brightness=1.0,
-        blend_mode='alpha',
+        blend_mode: Literal['alpha', 'hsv', 'overlay', 'soft'] = 'alpha',
         alpha=0.7,
         contours=False,
         **kwargs,
@@ -553,7 +554,8 @@ class Grid:
         graphics.save_image(output_file, fig=fig1, size=(scale * self.ncols, scale * self.nrows))
 
         # clear figure to avoid displaying the result
-        fig1.clear()
+        if fig1 is not None:
+            fig1.clear()
 
         print(f'The grid was successfully saved as an image in {output_file}')
 

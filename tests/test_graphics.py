@@ -30,4 +30,3 @@ def test_load_cmap():
     assert isinstance(cmap1, mcolors.Colormap)
     cmap2 = load_cmap('geosoft')
     assert isinstance(cmap2, mcolors.Colormap)
-

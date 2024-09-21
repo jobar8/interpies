@@ -5,11 +5,14 @@ transforms.py:
     Functions for applying derivatives, transforms and filters to grids.
 
 @author: Joseph Barraud
-Geophysics Labs, 2017
+Geophysics Labs, 2017-2024
 """
 
 # Import numpy and scipy
+from typing import overload
+
 import numpy as np
+from numpy.typing import ArrayLike
 
 # from scipy import interpolate
 from scipy import ndimage as nd
@@ -81,6 +84,10 @@ def simple_resample(data, sampling=2):
     return np.flipud(np.flipud(data)[::sampling, ::sampling])
 
 
+@overload
+def find_trend(X: ArrayLike, data: ArrayLike, degree: int = 1, returnModel: bool = True) -> Pipeline: ...
+@overload
+def find_trend(X: ArrayLike, data: ArrayLike, degree: int = 1, returnModel: bool = False) -> ArrayLike: ...
 def find_trend(X, data, degree=1, returnModel=False):
     """
     Calculate trend in 2D data. The fit is made with a polynomial function of
@@ -94,13 +101,10 @@ def find_trend(X, data, degree=1, returnModel=False):
     model = Pipeline([('poly', PolynomialFeatures(degree)), ('linear', LinearRegression())])
     model.fit(X[~mask.flatten(), :], data[~mask])
 
-    # calculate resulting trend
-    trend = model.predict(X).reshape((nrows, ncols))
-
     if returnModel:
         return model
-    else:
-        return trend
+    # calculate resulting trend
+    return model.predict(X).reshape((nrows, ncols))
 
 
 def stats(data):
