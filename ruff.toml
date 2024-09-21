@@ -3,6 +3,7 @@ line-length = 120
 [lint]
 extend-select = ["I", "B", "PL"]
 ignore = []
+exclude = ["*.ipynb"]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
@@ -15,6 +16,7 @@ unfixable = []
 
 [format]
 quote-style = "single"
+exclude = ["*.ipynb"]
 
 [lint.pylint]
 max-args = 10
