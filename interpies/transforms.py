@@ -361,7 +361,7 @@ def fs_coefficients(tap=5, direction='dx'):
     and Simoncelli (2004).
     """
 
-    if tap == 5:
+    if tap == 5:  # noqa: PLR2004
         if direction in ['dx', 'dy', 'dxdy']:
             # 5-tap 1st derivative coefficients.  These are optimal if you are just
             # seeking the 1st deriavtives.
@@ -378,7 +378,7 @@ def fs_coefficients(tap=5, direction='dx'):
             d1 = np.array([0.104550, 0.292315, 0.000000, -0.292315, -0.104550])
             d2 = np.array([0.232905, 0.002668, -0.471147, 0.002668, 0.232905])
 
-    elif tap == 7:
+    elif tap == 7:  # noqa: PLR2004
         # 7-tap interpolant and 1st and 2nd derivative coefficients
         p = np.array([0.004711, 0.069321, 0.245410, 0.361117, 0.245410, 0.069321, 0.004711])
         d1 = np.array([0.018708, 0.125376, 0.193091, 0.000000, -0.193091, -0.125376, -0.018708])
@@ -622,7 +622,7 @@ def unpad_full(data, nrows, ncols):
 
 
 # put everything together
-def fourier_transform(
+def fourier_transform(  # noqa: PLR0912, PLR0913
     data,
     cellsize,
     trans='dx',
