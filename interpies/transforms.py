@@ -85,10 +85,10 @@ def simple_resample(data, sampling=2):
 
 
 @overload
-def find_trend(X: ArrayLike, data: ArrayLike, degree: int = 1, returnModel: bool = True) -> Pipeline: ...
+def find_trend(point_coords: ArrayLike, data: ArrayLike, degree: int = 1, returnModel: bool = True) -> Pipeline: ...
 @overload
-def find_trend(X: ArrayLike, data: ArrayLike, degree: int = 1, returnModel: bool = False) -> ArrayLike: ...
-def find_trend(X, data, degree=1, returnModel=False):
+def find_trend(point_coords: ArrayLike, data: ArrayLike, degree: int = 1, returnModel: bool = False) -> ArrayLike: ...
+def find_trend(point_coords, data, degree=1, returnModel=False):
     """
     Calculate trend in 2D data. The fit is made with a polynomial function of
     chosen degree. A least-square method is used for the fit.
@@ -99,12 +99,12 @@ def find_trend(X, data, degree=1, returnModel=False):
 
     # Fit data with a polynomial surface (or a plane if degree=1)
     model = Pipeline([('poly', PolynomialFeatures(degree)), ('linear', LinearRegression())])
-    model.fit(X[~mask.flatten(), :], data[~mask])
+    model.fit(point_coords[~mask.flatten(), :], data[~mask])
 
     if returnModel:
         return model
     # calculate resulting trend
-    return model.predict(X).reshape((nrows, ncols))
+    return model.predict(point_coords).reshape((nrows, ncols))
 
 
 def stats(data):

@@ -1,10 +1,10 @@
 """Tests for the graphics module."""
 
-import pytest
 import matplotlib
 import matplotlib.colors as mcolors
-
 import numpy as np
+import pytest
+
 from interpies.graphics import cmap_to_array, load_cmap
 
 

@@ -242,13 +242,15 @@ class Grid:
             nr, nc = data.shape
 
         # get the coordinates of the (whole) grid points
-        Xfull = spatial.grid_to_points(self.xll, self.yll, self.cellsize, self.nrows, self.ncols, flipy=True)
+        point_coords_full = spatial.grid_to_points(
+            self.xll, self.yll, self.cellsize, self.nrows, self.ncols, flipy=True
+        )
         # get the coordinates of the resampled grid points
-        X = spatial.grid_to_points(self.xll, self.yll, sampling * self.cellsize, nr, nc, flipy=True)
+        point_coords = spatial.grid_to_points(self.xll, self.yll, sampling * self.cellsize, nr, nc, flipy=True)
         # Fit data with a polynomial surface (or a plane if degree=1)
-        model = transforms.find_trend(X, data, degree=degree, returnModel=True)
+        model = transforms.find_trend(point_coords, data, degree=degree, returnModel=True)
         # calculate resulting trend with all the points
-        trend = model.predict(Xfull).reshape((self.nrows, self.ncols))
+        trend = model.predict(point_coords_full).reshape((self.nrows, self.ncols))
 
         # return detrended grid
         return Grid(self.data - trend, self.transform, name=self.name + '_detrend', nodata_value=self.nodata)
