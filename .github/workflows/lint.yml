@@ -14,9 +14,6 @@ jobs:
         with:
           python-version: 3.12
 
-      - name: "Install Rustfmt"
-        run: rustup component add rustfmt
-
       - name: "Install uv"
         uses: astral-sh/setup-uv@v3
 
