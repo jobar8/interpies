@@ -5,15 +5,16 @@ graphics.py:
     Functions for creating and manipulating graphics, colormaps and plots.
 
 @author: Joseph Barraud
-Geophysics Labs, 2017
+Geophysics Labs, 2017-2024
 """
 
 import warnings
+from typing import Literal
 
+import matplotlib
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import cm
 from skimage import exposure
 
 # import local modules
@@ -21,16 +22,16 @@ import interpies
 import interpies.colors as icolors
 
 # temporary solution to silence a warning issued by Numpy when called by matplotlib imshow function
-warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 
 # ==============================================================================
 # Functions for loading and modifying colormaps
 # ==============================================================================
-def make_colormap(table, name="CustomMap"):
+def make_colormap(table, name='CustomMap'):
     """
     Return a LinearSegmentedColormap. The colormap is also registered with
-    plt.register_cmap(cmap=my_cmap)
+    matplotlib.colormaps.register(cmap=my_cmap)
 
     Parameters
     ----------
@@ -40,61 +41,55 @@ def make_colormap(table, name="CustomMap"):
     """
     if np.any(table > 1):
         table = table / 255.0
-    cdict = {"red": [], "green": [], "blue": []}
+    cdict = {'red': [], 'green': [], 'blue': []}
     N = float(len(table)) - 1
     for i, rgb in enumerate(table):
         red, gre, blu = rgb
-        cdict["red"].append([i / N, red, red])
-        cdict["green"].append([i / N, gre, gre])
-        cdict["blue"].append([i / N, blu, blu])
+        cdict['red'].append([i / N, red, red])
+        cdict['green'].append([i / N, gre, gre])
+        cdict['blue'].append([i / N, blu, blu])
 
-    new_cmap = mcolors.LinearSegmentedColormap(name, cdict)
-    plt.register_cmap(cmap=new_cmap)
+    new_cmap = mcolors.LinearSegmentedColormap(name, cdict)  # type: ignore
+    matplotlib.colormaps.register(cmap=new_cmap)
     return new_cmap
 
 
-def cmap_to_array(cmap, n=256):
+def cmap_to_array(cmap: str | mcolors.Colormap, n: int = 256):
     """
     Return a nx3 array of RGB values that defines a colormap or generate it from
     a colormap object.
+
     Input is colormap name (if recognised) or matplotlib cmap object.
     """
-    # first assume cmap is a string
-    if cmap in icolors.datad:  # additional colormaps in interpies.colors module
-        cm_array = np.asarray(icolors.datad[cmap])
-    elif cmap in cm.cmap_d:  # matplotlib colormaps + the new ones (viridis, inferno, etc.)
-        cmap = cm.cmap_d[cmap]
-        cm_array = cmap(np.linspace(0, 1, n))[:, :3]
-    # now assume cmap is a colormap object
+    if isinstance(cmap, str):
+        if cmap in icolors.datad:  # additional colormaps in interpies.colors module
+            return np.asarray(icolors.datad[cmap])
+        cmap = matplotlib.colormaps[cmap]
+    if isinstance(cmap, mcolors.Colormap):
+        return cmap(np.linspace(0, 1, n))[:, :3]  # remove alpha column
     else:
-        try:
-            cm_array = cmap(np.linspace(0, 1, n))[:, :3]  # remove alpha column
-        except:
-            raise ValueError(f"Colormap {cmap} has not been recognised")
-
-    return cm_array
+        raise ValueError(f'Colormap {cmap} has not been recognised')
 
 
-def load_cmap(cmap="geosoft"):
+def load_cmap(cmap='geosoft'):
     """
     Return a colormap object.
     If input is a string, load first the colormap, otherwise return the cmap unchanged.
     """
-    # first suppose input is the name of the colormap
-    if cmap in icolors.datad:  # one of the additional colormaps in interpies colors module
-        cm_list = icolors.datad[cmap]
-        new_cm = mcolors.LinearSegmentedColormap.from_list(cmap, cm_list)
-        plt.register_cmap(cmap=new_cm)
-        return new_cm
-    elif cmap in cm.cmap_d:  # matplotlib colormaps + the new ones (viridis, inferno, etc.)
-        return cm.get_cmap(cmap)
-    elif isinstance(cmap, mcolors.Colormap):
+    if isinstance(cmap, str):
+        if cmap in icolors.datad:  # additional colormaps in interpies.colors module
+            cm_list = icolors.datad[cmap]
+            new_cm = mcolors.LinearSegmentedColormap.from_list(cmap, cm_list)
+            matplotlib.colormaps.register(cmap=new_cm)
+            return new_cm
+        return matplotlib.colormaps[cmap]
+    if isinstance(cmap, mcolors.Colormap):
         return cmap
     else:
-        raise ValueError(f"Colormap {cmap} has not been recognised")
+        raise ValueError(f'Colormap {cmap} has not been recognised')
 
 
-def plot_cmap(name="geosoft", n=256):
+def plot_cmap(name='geosoft', n=256):
     """
     Make a checkerboard plot of the colours in a palette.
 
@@ -107,14 +102,14 @@ def plot_cmap(name="geosoft", n=256):
         as the plot is a square.
     """
     ncols = int(np.sqrt(n))
-    fig, ax = plt.subplots(figsize=(8, 8))
-    ax.imshow(np.arange(ncols**2).reshape(ncols, ncols), cmap=load_cmap(name), interpolation="nearest", aspect="equal")
+    _, ax = plt.subplots(figsize=(8, 8))
+    ax.imshow(np.arange(ncols**2).reshape(ncols, ncols), cmap=load_cmap(name), interpolation='nearest', aspect='equal')
     ax.set_xticklabels([])
     ax.set_yticklabels([])
     ax.grid(False)
 
 
-def equalize_colormap(cmap, data, name="EqualizedMap"):
+def equalize_colormap(cmap, data, name='EqualizedMap'):
     """
     Re-map a colormap according to a cumulative distribution. This is used to
     perform histogram equalization of an image by changing the colormap
@@ -140,7 +135,7 @@ def equalize_colormap(cmap, data, name="EqualizedMap"):
     cdf, bins = exposure.cumulative_distribution(data[~np.isnan(data)].flatten(), nbins=256)
 
     # normalize the bins to interval (0,1)
-    bins_norm = (bins - bins.min()) / np.float(bins.max() - bins.min())
+    bins_norm = (bins - bins.min()) / float(bins.max() - bins.min())
 
     # calculate new indices by applying the cdf as a function on the old indices
     # which are initially regularly spaced.
@@ -152,18 +147,18 @@ def equalize_colormap(cmap, data, name="EqualizedMap"):
     new_indices[-1] = 1.0
 
     # remap the color table
-    cdict = {"red": [], "green": [], "blue": []}
+    cdict = {'red': [], 'green': [], 'blue': []}
     for i, n in enumerate(new_indices):
         red, gre, blu = cm_array[i]
-        cdict["red"].append([n, red, red])
-        cdict["green"].append([n, gre, gre])
-        cdict["blue"].append([n, blu, blu])
+        cdict['red'].append([n, red, red])
+        cdict['green'].append([n, gre, gre])
+        cdict['blue'].append([n, blu, blu])
 
     # return new colormap
-    return mcolors.LinearSegmentedColormap(name, cdict)
+    return mcolors.LinearSegmentedColormap(name, cdict)  # type: ignore
 
 
-def clip_colormap(cm_array, data, min_percent=2, max_percent=98, name="ClippedMap"):
+def clip_colormap(cm_array, data, min_percent=2, max_percent=98, name='ClippedMap'):
     """
     Modify the colormap so that the image of the data looks clipped at extreme
     values.
@@ -189,29 +184,29 @@ def clip_colormap(cm_array, data, min_percent=2, max_percent=98, name="ClippedMa
     new_indices = np.linspace(0, 1, len(cm_array) + n_left + n_right)
 
     # remap the color table
-    cdict = {"red": [], "green": [], "blue": []}
+    cdict = {'red': [], 'green': [], 'blue': []}
     for i, n in enumerate(new_indices):
         if i < n_left:
             red, gre, blu = cm_array[0]
-            cdict["red"].append([n, red, red])
-            cdict["green"].append([n, gre, gre])
-            cdict["blue"].append([n, blu, blu])
+            cdict['red'].append([n, red, red])
+            cdict['green'].append([n, gre, gre])
+            cdict['blue'].append([n, blu, blu])
         elif i >= len(cm_array) + n_left:
             red, gre, blu = cm_array[-1]
-            cdict["red"].append([n, red, red])
-            cdict["green"].append([n, gre, gre])
-            cdict["blue"].append([n, blu, blu])
+            cdict['red'].append([n, red, red])
+            cdict['green'].append([n, gre, gre])
+            cdict['blue'].append([n, blu, blu])
         else:
             red, gre, blu = cm_array[i - n_left]
-            cdict["red"].append([n, red, red])
-            cdict["green"].append([n, gre, gre])
-            cdict["blue"].append([n, blu, blu])
+            cdict['red'].append([n, red, red])
+            cdict['green'].append([n, gre, gre])
+            cdict['blue'].append([n, blu, blu])
 
     # return new colormap
-    return mcolors.LinearSegmentedColormap(name, cdict)
+    return mcolors.LinearSegmentedColormap(name, cdict)  # type: ignore
 
 
-def modify_colormap(cmap, data=None, modif="autolevels", min_percent=2, max_percent=98, brightness=1.0):
+def modify_colormap(cmap, data=None, modif='autolevels', min_percent=2, max_percent=98, brightness=1.0):
     """
     Modify a colormap by clipping or rescaling, according to statistics of the
     input data or to fixed parameters. Also implement brightness control.
@@ -226,9 +221,9 @@ def modify_colormap(cmap, data=None, modif="autolevels", min_percent=2, max_perc
     cm_array = cmap_to_array(cmap, n=256)
 
     # modify color table
-    if modif == "autolevels":
+    if modif == 'autolevels':
         return clip_colormap(cm_array, data, min_percent=min_percent, max_percent=max_percent)
-    elif modif == "brightness":
+    elif modif == 'brightness':
         # convert brightness to gamma value
         gamma = np.exp(1 / brightness - 1)
         normed_cm_array = exposure.adjust_gamma(cm_array, gamma=gamma)
@@ -236,7 +231,7 @@ def modify_colormap(cmap, data=None, modif="autolevels", min_percent=2, max_perc
         normed_cm_array = cm_array
 
     # create new colormap
-    new_cm = mcolors.LinearSegmentedColormap.from_list(cm_name + "_n", normed_cm_array)
+    new_cm = mcolors.LinearSegmentedColormap.from_list(cm_name + '_n', normed_cm_array)
 
     return new_cm
 
@@ -292,11 +287,11 @@ def alpha_blend(rgb, intensity, alpha=0.7):
     return alpha * rgb + (1 - alpha) * intensity
 
 
-def imshow_hs(
+def imshow_hs(  # noqa: PLR0913
     source,
     ax=None,
-    cmap="geosoft",
-    cmap_norm="equalize",
+    cmap='geosoft',
+    cmap_norm='equalize',
     hs=True,
     zf=10,
     azdeg=45,
@@ -305,12 +300,12 @@ def imshow_hs(
     dy=1,
     hs_contrast=1.5,
     cmap_brightness=1.0,
-    blend_mode="alpha",
+    blend_mode: Literal['alpha', 'hsv', 'overlay', 'soft'] = 'alpha',
     alpha=0.7,
     contours=False,
     colorbar=True,
     cb_contours=False,
-    cb_ticks="linear",
+    cb_ticks='linear',
     std_range=1,
     figsize=(8, 8),
     title=None,
@@ -421,53 +416,53 @@ def imshow_hs(
     # get extra information if input data is grid object (grid.grid)
     # `extent` is added to the kwargs of the imshow function
     if isinstance(source, interpies.Grid):
-        kwargs["extent"] = source.extent
+        kwargs['extent'] = source.extent
         data = source.data
         if title is None:
-            if source.name != "Unknown":
+            if source.name != 'Unknown':
                 title = source.name
     else:
         data = source.copy()
 
     ## Extract keywords - using pop() also removes the key from the dictionary
     # keyword for the colorbar
-    cb_kwargs = dict(shrink=kwargs.pop("shrink", 0.6))
+    cb_kwargs = dict(shrink=kwargs.pop('shrink', 0.6))
 
     # keywords for the title
-    title_kwargs = dict(fontweight=kwargs.pop("fontweight", None), fontsize=kwargs.pop("fontsize", "large"))
+    title_kwargs = dict(fontweight=kwargs.pop('fontweight', None), fontsize=kwargs.pop('fontsize', 'large'))
 
     # keyword arguments that can be passed to ls.shade
-    shade_kwargs = dict(norm=kwargs.get("norm"), vmin=kwargs.get("vmin"), vmax=kwargs.get("vmax"))
+    shade_kwargs = dict(norm=kwargs.get('norm'), vmin=kwargs.get('vmin'), vmax=kwargs.get('vmax'))
 
     # keywords for cmap normalisation
-    min_percent = kwargs.pop("min_percent", 2)
-    max_percent = kwargs.pop("max_percent", 98)
+    min_percent = kwargs.pop('min_percent', 2)
+    max_percent = kwargs.pop('max_percent', 98)
 
     # keywords for contours
-    ct_colors = kwargs.pop("ct_colors", "k")
-    ct_cmap = kwargs.pop("ct_cmap", None)
+    ct_colors = kwargs.pop('ct_colors', 'k')
+    ct_cmap = kwargs.pop('ct_cmap', None)
 
     # modify colormap if required
-    if cmap_norm in ["equalize", "equalise", "equalization", "equalisation"]:
+    if cmap_norm in ['equalize', 'equalise', 'equalization', 'equalisation']:
         # equalisation
         my_cmap = equalize_colormap(cmap, data)
 
-    elif cmap_norm in ["auto", "autolevels"]:
+    elif cmap_norm in ['auto', 'autolevels']:
         # clip colormap
-        my_cmap = modify_colormap(cmap, data, modif="autolevels", min_percent=min_percent, max_percent=max_percent)
+        my_cmap = modify_colormap(cmap, data, modif='autolevels', min_percent=min_percent, max_percent=max_percent)
     else:
         # colormap is loaded unchanged from the input name
         my_cmap = load_cmap(cmap)  # raise error if name is not recognised
 
     # apply brightness control
     if cmap_brightness != 1.0:
-        my_cmap = modify_colormap(my_cmap, modif="brightness", brightness=cmap_brightness)
+        my_cmap = modify_colormap(my_cmap, modif='brightness', brightness=cmap_brightness)
 
     # create figure or retrieve the one already defined
     if ax:
-        fig = ax.get_figure()
+        _ = ax.get_figure()
     else:
-        fig, ax = plt.subplots(figsize=figsize)
+        _, ax = plt.subplots(figsize=figsize)
 
     # convert input data to a masked array
     data = np.ma.masked_array(data, np.isnan(data))
@@ -475,8 +470,8 @@ def imshow_hs(
     # add array to figure with hillshade or not
     if hs:
         # flip azimuth upside down if grid is also flipped
-        if "origin" in kwargs:
-            if kwargs["origin"] == "lower":
+        if 'origin' in kwargs:
+            if kwargs['origin'] == 'lower':
                 azdeg = 180 - azdeg
 
         # create light source
@@ -486,9 +481,9 @@ def imshow_hs(
         if alpha == 0:
             # special case when only the shaded relief is needed without blending
             rgb = ls.hillshade(data, vert_exag=zf, dx=dx, dy=dy, fraction=hs_contrast)
-            kwargs["cmap"] = "gray"
+            kwargs['cmap'] = 'gray'
 
-        elif blend_mode == "alpha":
+        elif blend_mode == 'alpha':
             # transparency blending
             rgb = ls.shade(
                 data,
@@ -532,8 +527,8 @@ def imshow_hs(
         contours = True
     if levels is not None:
         # remove cmap keyword that might have been added earlier
-        _ = kwargs.pop("cmap", None)
-        conts = plt.contour(data, levels, linewidths=0.5, colors=ct_colors, linestyles="solid", cmap=ct_cmap, **kwargs)
+        _ = kwargs.pop('cmap', None)
+        conts = plt.contour(data, levels, linewidths=0.5, colors=ct_colors, linestyles='solid', cmap=ct_cmap, **kwargs)
 
     # add colorbar
     if colorbar and alpha != 0:
@@ -542,7 +537,7 @@ def imshow_hs(
             im = ax.imshow(data, cmap=my_cmap, **kwargs)
             im.remove()
         # draw colorbar
-        if cb_ticks == "linear":  # normal equidistant ticks on a linear scale
+        if cb_ticks == 'linear':  # normal equidistant ticks on a linear scale
             cb1 = plt.colorbar(im, ax=ax, **cb_kwargs)
         else:  # show ticks at min, max, mean and standard deviation interval
             new_ticks = stats_boundaries(data, std_range, std_range)
@@ -582,7 +577,7 @@ def save_image(output_file, fig=None, size=None, dpi=100):
         fig = plt.gcf()
     ax = fig.gca()
     ax.set_axis_off()
-    ax.set_position([0, 0, 1, 1])
+    ax.set_position((0, 0, 1, 1))
 
     if size:
         w, h = size

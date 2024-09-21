@@ -14,23 +14,23 @@ from obspy.io.segy.segy import BINARY_FILE_HEADER_FORMAT, _read_segy
 
 # most useful trace header keys
 STH_keys = [
-    "trace_sequence_number_within_line",
-    "trace_sequence_number_within_segy_file",
-    "scalar_to_be_applied_to_all_coordinates",
-    "source_coordinate_x",
-    "source_coordinate_y",
-    "group_coordinate_x",
-    "group_coordinate_y",
-    "coordinate_units",
-    "lag_time_A",
-    "lag_time_B",
-    "delay_recording_time",
-    "number_of_samples_in_this_trace",
-    "sample_interval_in_ms_for_this_trace",
-    "x_coordinate_of_ensemble_position_of_this_trace",
-    "y_coordinate_of_ensemble_position_of_this_trace",
-    "for_3d_poststack_data_this_field_is_for_in_line_number",
-    "for_3d_poststack_data_this_field_is_for_cross_line_number",
+    'trace_sequence_number_within_line',
+    'trace_sequence_number_within_segy_file',
+    'scalar_to_be_applied_to_all_coordinates',
+    'source_coordinate_x',
+    'source_coordinate_y',
+    'group_coordinate_x',
+    'group_coordinate_y',
+    'coordinate_units',
+    'lag_time_A',
+    'lag_time_B',
+    'delay_recording_time',
+    'number_of_samples_in_this_trace',
+    'sample_interval_in_ms_for_this_trace',
+    'x_coordinate_of_ensemble_position_of_this_trace',
+    'y_coordinate_of_ensemble_position_of_this_trace',
+    'for_3d_poststack_data_this_field_is_for_in_line_number',
+    'for_3d_poststack_data_this_field_is_for_cross_line_number',
 ]
 
 
@@ -120,10 +120,10 @@ def load_SEGY(filename, endian=None):
     SH = load_SEGY_header(seis)
 
     # additional headers for compatibility with older segy module
-    SH["filename"] = filename
-    SH["ntraces"] = ntraces
-    SH["ns"] = SH["number_of_samples_per_data_trace"]
-    SH["dt"] = SH["sample_interval_in_microseconds"] / 1000  # in milliseconds
+    SH['filename'] = filename
+    SH['ntraces'] = ntraces
+    SH['ns'] = SH['number_of_samples_per_data_trace']
+    SH['dt'] = SH['sample_interval_in_microseconds'] / 1000  # in milliseconds
 
     # Load all the Trace headers in arrays
     STH = load_SEGY_trace_header(traces)
@@ -151,10 +151,10 @@ def load_SH_and_STH(filename, endian=None):
     SH = load_SEGY_header(seis)
 
     # additional headers for compatibility with older segy module
-    SH["filename"] = filename
-    SH["ntraces"] = ntraces
-    SH["ns"] = SH["number_of_samples_per_data_trace"]
-    SH["dt"] = SH["sample_interval_in_microseconds"] / 1000  # in milliseconds
+    SH['filename'] = filename
+    SH['ntraces'] = ntraces
+    SH['ns'] = SH['number_of_samples_per_data_trace']
+    SH['dt'] = SH['sample_interval_in_microseconds'] / 1000  # in milliseconds
 
     # Load all the Trace headers in arrays
     STH = load_SEGY_trace_header(traces)

@@ -1,7 +1,7 @@
 line-length = 120
 
 [lint]
-extend-select = ["I", "B"]
+extend-select = ["I", "B", "PL"]
 ignore = []
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
@@ -15,3 +15,6 @@ unfixable = []
 
 [format]
 quote-style = "single"
+
+[lint.pylint]
+max-args = 10

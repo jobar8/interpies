@@ -5,15 +5,16 @@ grid.py:
     Sub-module for the definition of the grid class
 
 @author: Joseph Barraud
-Geophysics Labs, 2017
+Geophysics Labs, 2017-2024
 """
 
 import os.path
+from typing import Literal
 
 import numpy as np
 import rasterio
-from rasterio import transform as rio_transform
-from rasterio import dtypes
+import rasterio.dtypes
+import rasterio.transform
 
 # import local modules
 from interpies import graphics, spatial, transforms
@@ -33,8 +34,8 @@ class Grid:
         data,
         transform=None,
         nodata_value=None,
-        name="Unknown",
-        filename="Unknown",
+        name='Unknown',
+        filename='Unknown',
         mask=None,
         crs=None,
         copyFrom=None,
@@ -61,7 +62,7 @@ class Grid:
         if transform is not None:
             self.transform = transform
         else:
-            self.transform = rio_transform.from_origin(0, 0, 100, 100)
+            self.transform = rasterio.transform.from_origin(0, 0, 100, 100)
 
         # define grid properties
         self.name = name
@@ -72,10 +73,10 @@ class Grid:
         if crs is not None:
             self.crs = crs
         else:
-            self.crs = "Unknown"
+            self.crs = 'Unknown'
 
         # lower left corner (pixel centre)
-        self.xll, self.yll = rio_transform.xy(self.transform, self.nrows - 1, 0, offset="center")
+        self.xll, self.yll = rasterio.transform.xy(self.transform, self.nrows - 1, 0, offset='center')
 
         # nodata value
         self.nodata = nodata_value
@@ -95,7 +96,7 @@ class Grid:
         # calculate extent in matplotlib sense
         # matplotlib extent: `left, right, bottom, top`
         # rasterio bounds: `west, south, east, north`
-        w, s, e, n = rio_transform.array_bounds(self.nrows, self.ncols, self.transform)
+        w, s, e, n = rasterio.transform.array_bounds(self.nrows, self.ncols, self.transform)
         self.extent = [w, e, s, n]
 
     def save(self, outputFile):
@@ -105,12 +106,12 @@ class Grid:
         # create rasterio object
         new_dataset = rasterio.open(
             outputFile,
-            "w",
-            driver="GTiff",
+            'w',
+            driver='GTiff',
             height=self.nrows,
             width=self.ncols,
             count=1,
-            dtype=dtypes.float64,
+            dtype=rasterio.dtypes.float64,
             crs=self.crs,
             transform=self.transform,
         )
@@ -118,7 +119,7 @@ class Grid:
         new_dataset.write(self.data, 1)
         # close file
         new_dataset.close()
-        print(f"The grid was successfully saved to {outputFile}")
+        print(f'The grid was successfully saved to {outputFile}')
 
     def to_fatiando(self):
         """
@@ -131,20 +132,21 @@ class Grid:
         return pts[:, 1], pts[:, 0], self.data.flatten(), (self.nrows, self.ncols)
 
     ### Grid methods
-    def clip(self, xmin, xmax, ymin, ymax):
+    def clip(self, xmin, xmax, ymin, ymax) -> 'Grid':
         """
         Clip grid.
         """
-        rows, cols = rio_transform.rowcol(self.transform, [xmin, xmax], [ymin, ymax])
-
+        rows, cols = rasterio.transform.rowcol(self.transform, [xmin, xmax], [ymin, ymax])
+        rows = np.clip(rows, 0, None)
+        cols = np.clip(cols, 0, None)
         data_selection = self.data[rows[1] : rows[0] + 1, cols[0] : cols[1] + 1]
 
         # new origin
-        new_west, new_north = rio_transform.xy(self.transform, rows[1], cols[0], offset="ul")
+        new_west, new_north = rasterio.transform.xy(self.transform, rows[1], cols[0], offset='ul')
         # new transform
-        new_transf = rio_transform.from_origin(new_west, new_north, self.cellsize, self.cellsize)
+        new_transf = rasterio.transform.from_origin(new_west, new_north, self.cellsize, self.cellsize)
 
-        return Grid(data_selection, new_transf, name=self.name + "_clip", nodata_value=self.nodata)
+        return Grid(data_selection, new_transf, name=self.name + '_clip', nodata_value=self.nodata)
 
     def resample(self, sampling=2):
         """
@@ -158,9 +160,9 @@ class Grid:
         new_west = self.extent[0]  # unchanged
         new_north = self.extent[2] + new_height * new_cellsize
         # new transform
-        new_transf = rio_transform.from_origin(new_west, new_north, new_cellsize, new_cellsize)
+        new_transf = rasterio.transform.from_origin(new_west, new_north, new_cellsize, new_cellsize)
 
-        return Grid(new_data, new_transf, name=self.name + f"_res{sampling}", nodata_value=self.nodata)
+        return Grid(new_data, new_transf, name=self.name + f'_res{sampling}', nodata_value=self.nodata)
 
     def reproject(
         self,
@@ -173,7 +175,7 @@ class Grid:
         xmax=None,
         ymin=None,
         ymax=None,
-        method="bilinear",
+        method='bilinear',
     ):
         """
         Project or reproject the data to a new coordinate system.
@@ -187,11 +189,11 @@ class Grid:
             Destination coordinate system.
         """
         if src_srs is None:
-            if self.crs == "Unknown":
+            if self.crs == 'Unknown':
                 raise ValueError(
-                    "The coordinate system of the input data "
-                    "is undefined. Please set it up in the Grid or "
-                    "use the src_srs argument."
+                    'The coordinate system of the input data '
+                    'is undefined. Please set it up in the Grid or '
+                    'use the src_srs argument.'
                 )
             else:
                 src_srs = self.crs
@@ -223,7 +225,7 @@ class Grid:
         Multiply data with a number.
         """
         # return scaled grid
-        return Grid(scale_factor * self.data, self.transform, name=self.name + "_scaled", nodata_value=self.nodata)
+        return Grid(scale_factor * self.data, self.transform, name=self.name + '_scaled', nodata_value=self.nodata)
 
     def detrend(self, degree=1, sampling=4):
         """
@@ -240,22 +242,24 @@ class Grid:
             nr, nc = data.shape
 
         # get the coordinates of the (whole) grid points
-        Xfull = spatial.grid_to_points(self.xll, self.yll, self.cellsize, self.nrows, self.ncols, flipy=True)
+        point_coords_full = spatial.grid_to_points(
+            self.xll, self.yll, self.cellsize, self.nrows, self.ncols, flipy=True
+        )
         # get the coordinates of the resampled grid points
-        X = spatial.grid_to_points(self.xll, self.yll, sampling * self.cellsize, nr, nc, flipy=True)
+        point_coords = spatial.grid_to_points(self.xll, self.yll, sampling * self.cellsize, nr, nc, flipy=True)
         # Fit data with a polynomial surface (or a plane if degree=1)
-        model = transforms.find_trend(X, data, degree=degree, returnModel=True)
+        model = transforms.find_trend(point_coords, data, degree=degree, returnModel=True)
         # calculate resulting trend with all the points
-        trend = model.predict(Xfull).reshape((self.nrows, self.ncols))
+        trend = model.predict(point_coords_full).reshape((self.nrows, self.ncols))
 
         # return detrended grid
-        return Grid(self.data - trend, self.transform, name=self.name + "_detrend", nodata_value=self.nodata)
+        return Grid(self.data - trend, self.transform, name=self.name + '_detrend', nodata_value=self.nodata)
 
     def fill_nodata(self):
         """Simple filling algorithm to remove NaNs."""
         filled = transforms.fill_nodata(self.data)
         # return filled grid
-        return Grid(filled, self.transform, name=self.name + "_filled", nodata_value=self.nodata)
+        return Grid(filled, self.transform, name=self.name + '_filled', nodata_value=self.nodata)
 
     def apply_mask(self, mask=None, inplace=False):
         """Mask data with new mask or apply saved mask."""
@@ -273,34 +277,34 @@ class Grid:
         """
         Return information about the properties of the grid and the data.
         """
-        print("\n* Info *")
-        print("Grid name: " + self.name)
-        print("Filename: " + self.filename)
-        print("Coordinate reference system: " + self.crs)
-        print(f"Grid size: {self.ncols:d} columns x {self.nrows:d} rows")
-        print(f"Cell size: {self.cellsize:.4g} x {self.y_cellsize:.4g}")
-        print(f"Lower left corner (pixel centre): ({self.xll:.3f}, {self.yll:.3f})")
+        print('\n* Info *')
+        print('Grid name: ' + self.name)
+        print('Filename: ' + self.filename)
+        print('Coordinate reference system: ' + self.crs)
+        print(f'Grid size: {self.ncols:d} columns x {self.nrows:d} rows')
+        print(f'Cell size: {self.cellsize:.4g} x {self.y_cellsize:.4g}')
+        print(f'Lower left corner (pixel centre): ({self.xll:.3f}, {self.yll:.3f})')
         print(
-            "Grid extent (outer limits): "
-            + "west: {:.3f}, east: {:.3f}, south: {:.3f}, north: {:.3f}".format(*self.extent)
+            'Grid extent (outer limits): '
+            + 'west: {:.3f}, east: {:.3f}, south: {:.3f}, north: {:.3f}'.format(*self.extent)
         )
-        print(f"No Data Value: {self.nodata}")
+        print(f'No Data Value: {self.nodata}')
         nanCells = np.isnan(self.data).sum()
-        print(f"Number of null cells: {nanCells} ({100*nanCells/(self.nrows * self.ncols):.2f}%)")
+        print(f'Number of null cells: {nanCells} ({100*nanCells/(self.nrows * self.ncols):.2f}%)')
         # stats
         mean, sigma, minimum, maximum = transforms.stats(self.data)
-        print("\n* Statistics *")
-        print(f"mean = {mean}")
-        print(f"sigma = {sigma}")
-        print(f"min = {minimum}")
-        print(f"max = {maximum}")
+        print('\n* Statistics *')
+        print(f'mean = {mean}')
+        print(f'sigma = {sigma}')
+        print(f'min = {minimum}')
+        print(f'max = {maximum}')
 
     ### Graphics
-    def show(
+    def show(  # noqa: PLR0913
         self,
         ax=None,
-        cmap="geosoft",
-        cmap_norm="equalize",
+        cmap='geosoft',
+        cmap_norm='equalize',
         hs=True,
         zf=10,
         azdeg=45,
@@ -309,12 +313,12 @@ class Grid:
         dy=1,
         hs_contrast=1.5,
         cmap_brightness=1.0,
-        blend_mode="alpha",
+        blend_mode: Literal['alpha', 'hsv', 'overlay', 'soft'] = 'alpha',
         alpha=0.7,
         contours=False,
         colorbar=True,
         cb_contours=False,
-        cb_ticks="linear",
+        cb_ticks='linear',
         std_range=1,
         figsize=(8, 8),
         title=None,
@@ -421,7 +425,7 @@ class Grid:
         matplotlib.colors.LightSource. A new blending mode is added (alpha compositing,
         see https://en.wikipedia.org/wiki/Alpha_compositing).
         """
-        if "origin" in kwargs:
+        if 'origin' in kwargs:
             return graphics.imshow_hs(
                 self,
                 ax=ax,
@@ -470,16 +474,16 @@ class Grid:
             std_range=std_range,
             figsize=figsize,
             title=title,
-            origin="upper",
+            origin='upper',
             **kwargs,
         )
 
-    def save_image(
+    def save_image(  # noqa: PLR0913
         self,
         output_file,
         scale=1,
-        cmap="geosoft",
-        cmap_norm="equalize",
+        cmap='geosoft',
+        cmap_norm='equalize',
         hs=True,
         zf=10,
         azdeg=45,
@@ -488,7 +492,7 @@ class Grid:
         dy=1,
         hs_contrast=1.5,
         cmap_brightness=1.0,
-        blend_mode="alpha",
+        blend_mode: Literal['alpha', 'hsv', 'overlay', 'soft'] = 'alpha',
         alpha=0.7,
         contours=False,
         **kwargs,
@@ -505,7 +509,7 @@ class Grid:
             the image will have the same size (columns and rows) as the grid.
             To make an image smaller than the grid, use a scale smaller than 1.
         """
-        if "origin" in kwargs:
+        if 'origin' in kwargs:
             ax = graphics.imshow_hs(
                 self,
                 ax=None,
@@ -544,7 +548,7 @@ class Grid:
                 alpha=alpha,
                 contours=contours,
                 colorbar=False,
-                origin="upper",
+                origin='upper',
                 **kwargs,
             )
 
@@ -552,134 +556,135 @@ class Grid:
         graphics.save_image(output_file, fig=fig1, size=(scale * self.ncols, scale * self.nrows))
 
         # clear figure to avoid displaying the result
-        fig1.clear()
+        if fig1 is not None:
+            fig1.clear()
 
-        print(f"The grid was successfully saved as an image in {output_file}")
+        print(f'The grid was successfully saved as an image in {output_file}')
 
     ### Filters
-    def smooth(self, method="SG", deg=3, win=5, doEdges=True, sigma=1):
+    def smooth(self, method='SG', deg=3, win=5, doEdges=True, sigma=1):
         """Smoothing filters."""
-        if method.upper() == "SG":
+        if method.upper() == 'SG':
             output = transforms.savgol_smooth(self.data, deg=deg, win=win, doEdges=doEdges)
 
-        elif method.lower() == "gaussian":
+        elif method.lower() == 'gaussian':
             output = transforms.gauss(self.data, sigma=sigma)
 
         else:
-            raise ValueError(f"Method {method} has not been recognised.")
+            raise ValueError(f'Method {method} has not been recognised.')
 
-        return Grid(output, self.transform, name=self.name + "_smooth")
+        return Grid(output, self.transform, name=self.name + '_smooth')
 
     def laplacian(self):
         """Calculate the Laplacian using 2D convolution."""
         output = transforms.laplacian(self.data, self.cellsize)
-        return Grid(output, self.transform, name=self.name + "_laplacian")
+        return Grid(output, self.transform, name=self.name + '_laplacian')
 
     ### Derivatives
 
     # horizontal derivatives
-    def dx(self, method="SG", deg=3, win=5, doEdges=True, fs_tap=5, **kwargs):
+    def dx(self, method='SG', deg=3, win=5, doEdges=True, fs_tap=5, **kwargs):
         """Calculate first horizontal derivative with various methods."""
-        if method.upper() == "SG":
+        if method.upper() == 'SG':
             output = transforms.savgol_deriv(
-                self.data, self.cellsize, direction="dx", deg=deg, win=win, doEdges=doEdges
+                self.data, self.cellsize, direction='dx', deg=deg, win=win, doEdges=doEdges
             )
 
-        elif method.upper() == "FS":
-            output = transforms.fs_deriv(self.data, self.cellsize, direction="dx", tap=fs_tap)
+        elif method.upper() == 'FS':
+            output = transforms.fs_deriv(self.data, self.cellsize, direction='dx', tap=fs_tap)
 
-        elif method.lower() == "fourier":
-            output = transforms.fourier_transform(self.data, self.cellsize, trans="dx", **kwargs)
+        elif method.lower() == 'fourier':
+            output = transforms.fourier_transform(self.data, self.cellsize, trans='dx', **kwargs)
         else:
-            raise ValueError(f"Method {method} has not been recognised.")
+            raise ValueError(f'Method {method} has not been recognised.')
 
-        return Grid(output, self.transform, name=self.name + "_dx")
+        return Grid(output, self.transform, name=self.name + '_dx')
 
-    def dx2(self, method="SG", deg=4, win=5, doEdges=True, fs_tap=5, **kwargs):
+    def dx2(self, method='SG', deg=4, win=5, doEdges=True, fs_tap=5, **kwargs):
         """Calculate second horizontal derivative with various methods."""
-        if method.upper() == "SG":
+        if method.upper() == 'SG':
             output = transforms.savgol_deriv(
-                self.data, self.cellsize, direction="dx2", deg=deg, win=win, doEdges=doEdges
+                self.data, self.cellsize, direction='dx2', deg=deg, win=win, doEdges=doEdges
             )
 
-        elif method.upper() == "FS":
-            output = transforms.fs_deriv(self.data, self.cellsize, direction="dx2", tap=fs_tap)
+        elif method.upper() == 'FS':
+            output = transforms.fs_deriv(self.data, self.cellsize, direction='dx2', tap=fs_tap)
 
-        elif method.lower() == "fourier":
-            output = transforms.fourier_transform(self.data, self.cellsize, trans="dx", order=2, **kwargs)
+        elif method.lower() == 'fourier':
+            output = transforms.fourier_transform(self.data, self.cellsize, trans='dx', order=2, **kwargs)
         else:
-            raise ValueError(f"Method {method} has not been recognised.")
+            raise ValueError(f'Method {method} has not been recognised.')
 
-        return Grid(output, self.transform, name=self.name + "_dx2")
+        return Grid(output, self.transform, name=self.name + '_dx2')
 
-    def dy(self, method="SG", deg=3, win=5, doEdges=True, fs_tap=5, **kwargs):
+    def dy(self, method='SG', deg=3, win=5, doEdges=True, fs_tap=5, **kwargs):
         """Calculate first horizontal derivative with various methods."""
-        if method.upper() == "SG":
+        if method.upper() == 'SG':
             output = transforms.savgol_deriv(
-                self.data, self.cellsize, direction="dy", deg=deg, win=win, doEdges=doEdges
+                self.data, self.cellsize, direction='dy', deg=deg, win=win, doEdges=doEdges
             )
 
-        elif method.upper() == "FS":
-            output = transforms.fs_deriv(self.data, self.cellsize, direction="dy", tap=fs_tap)
+        elif method.upper() == 'FS':
+            output = transforms.fs_deriv(self.data, self.cellsize, direction='dy', tap=fs_tap)
 
-        elif method.lower() == "fourier":
-            output = transforms.fourier_transform(self.data, self.cellsize, trans="dy", **kwargs)
+        elif method.lower() == 'fourier':
+            output = transforms.fourier_transform(self.data, self.cellsize, trans='dy', **kwargs)
         else:
-            raise ValueError(f"Method {method} has not been recognised.")
+            raise ValueError(f'Method {method} has not been recognised.')
 
-        return Grid(output, self.transform, name=self.name + "_dy")
+        return Grid(output, self.transform, name=self.name + '_dy')
 
-    def dy2(self, method="SG", deg=4, win=5, doEdges=True, fs_tap=5, **kwargs):
+    def dy2(self, method='SG', deg=4, win=5, doEdges=True, fs_tap=5, **kwargs):
         """Calculate second horizontal derivative with various methods."""
-        if method.upper() == "SG":
+        if method.upper() == 'SG':
             output = transforms.savgol_deriv(
-                self.data, self.cellsize, direction="dy2", deg=deg, win=win, doEdges=doEdges
+                self.data, self.cellsize, direction='dy2', deg=deg, win=win, doEdges=doEdges
             )
 
-        elif method.upper() == "FS":
-            output = transforms.fs_deriv(self.data, self.cellsize, direction="dy2", tap=fs_tap)
+        elif method.upper() == 'FS':
+            output = transforms.fs_deriv(self.data, self.cellsize, direction='dy2', tap=fs_tap)
 
-        elif method.lower() == "fourier":
-            output = transforms.fourier_transform(self.data, self.cellsize, trans="dy", order=2, **kwargs)
+        elif method.lower() == 'fourier':
+            output = transforms.fourier_transform(self.data, self.cellsize, trans='dy', order=2, **kwargs)
         else:
-            raise ValueError(f"Method {method} has not been recognised.")
+            raise ValueError(f'Method {method} has not been recognised.')
 
-        return Grid(output, self.transform, name=self.name + "_dy2")
+        return Grid(output, self.transform, name=self.name + '_dy2')
 
-    def dxdy(self, method="SG", deg=3, win=5, doEdges=True, fs_tap=5, **kwargs):
+    def dxdy(self, method='SG', deg=3, win=5, doEdges=True, fs_tap=5, **kwargs):
         """Calculate second horizontal derivative with various methods."""
-        if method.upper() == "SG":
+        if method.upper() == 'SG':
             output = transforms.savgol_deriv(
-                self.data, self.cellsize, direction="dxdy", deg=deg, win=win, doEdges=doEdges
+                self.data, self.cellsize, direction='dxdy', deg=deg, win=win, doEdges=doEdges
             )
 
-        elif method.upper() == "FS":
-            output = transforms.fs_deriv(self.data, self.cellsize, direction="dxdy", tap=fs_tap)
+        elif method.upper() == 'FS':
+            output = transforms.fs_deriv(self.data, self.cellsize, direction='dxdy', tap=fs_tap)
 
-        elif method.lower() == "fourier":
-            output = transforms.fourier_transform(self.data, self.cellsize, trans="dxdy", **kwargs)
+        elif method.lower() == 'fourier':
+            output = transforms.fourier_transform(self.data, self.cellsize, trans='dxdy', **kwargs)
         else:
-            raise ValueError(f"Method {method} has not been recognised.")
+            raise ValueError(f'Method {method} has not been recognised.')
 
-        return Grid(output, self.transform, name=self.name + "_dxdy")
+        return Grid(output, self.transform, name=self.name + '_dxdy')
 
     # vertical derivative
-    def dz(self, method="fourier", order=1, **kwargs):
+    def dz(self, method='fourier', order=1, **kwargs):
         """Calculate the vertical derivative with various methods."""
-        if method.lower() == "fourier":
-            output = transforms.fourier_transform(self.data, self.cellsize, trans="dz", order=order, **kwargs)
-        elif method.lower() == "isvd":
-            dz_grid = self.isvd(method="SG", order=order, **kwargs)
+        if method.lower() == 'fourier':
+            output = transforms.fourier_transform(self.data, self.cellsize, trans='dz', order=order, **kwargs)
+        elif method.lower() == 'isvd':
+            dz_grid = self.isvd(method='SG', order=order, **kwargs)
             output = dz_grid.data
         else:
-            raise ValueError(f"Method {method} has not been recognised.")
+            raise ValueError(f'Method {method} has not been recognised.')
 
-        return Grid(output, self.transform, name=f"{self.name}_dz{order}")
+        return Grid(output, self.transform, name=f'{self.name}_dz{order}')
 
     # vertical derivative with ISVD method (makes use of the Laplace eq.)
-    def isvd(self, method="SG", order=1, deg=3, win=5, doEdges=True, fs_tap=5, **kwargs):
+    def isvd(self, method='SG', order=1, deg=3, win=5, doEdges=True, fs_tap=5, **kwargs):
         """Calculate the vertical derivative with the ISVD method."""
-        if method.lower() in ["sg", "fs", "fourier"]:
+        if method.lower() in ['sg', 'fs', 'fourier']:
             output = transforms.isvd(
                 self.data,
                 self.cellsize,
@@ -693,43 +698,43 @@ class Grid:
             )
 
         else:
-            raise ValueError(f"Method {method} has not been recognised.")
+            raise ValueError(f'Method {method} has not been recognised.')
 
-        return Grid(output, self.transform, name=f"{self.name}_dz{order}")
+        return Grid(output, self.transform, name=f'{self.name}_dz{order}')
 
     # vertical integral
-    def vi(self, method="fourier", order=1, eps=1e-6, **kwargs):
+    def vi(self, method='fourier', order=1, eps=1e-6, **kwargs):
         """Calculate the vertical integral."""
-        if method.lower() == "fourier":
-            output = transforms.fourier_transform(self.data, self.cellsize, trans="vi", order=order, eps=eps, **kwargs)
+        if method.lower() == 'fourier':
+            output = transforms.fourier_transform(self.data, self.cellsize, trans='vi', order=order, eps=eps, **kwargs)
         else:
-            raise ValueError(f"Method {method} has not been recognised.")
+            raise ValueError(f'Method {method} has not been recognised.')
 
-        return Grid(output, self.transform, name=f"{self.name}_vi{order}")
+        return Grid(output, self.transform, name=f'{self.name}_vi{order}')
 
     ### Transforms
 
     # horizontal gradient magnitude
-    def hgm(self, method="SG", deg=3, win=5, doEdges=True, fs_tap=5, **kwargs):
+    def hgm(self, method='SG', deg=3, win=5, doEdges=True, fs_tap=5, **kwargs):
         """Calculate the horizontal gradient magnitude with various methods."""
-        if method.upper() == "SG":
-            dx1 = transforms.savgol_deriv(self.data, self.cellsize, direction="dx", deg=deg, win=win, doEdges=doEdges)
-            dy1 = transforms.savgol_deriv(self.data, self.cellsize, direction="dy", deg=deg, win=win, doEdges=doEdges)
+        if method.upper() == 'SG':
+            dx1 = transforms.savgol_deriv(self.data, self.cellsize, direction='dx', deg=deg, win=win, doEdges=doEdges)
+            dy1 = transforms.savgol_deriv(self.data, self.cellsize, direction='dy', deg=deg, win=win, doEdges=doEdges)
 
-        elif method.upper() == "FS":
-            dx1 = transforms.fs_deriv(self.data, self.cellsize, direction="dx", tap=fs_tap)
-            dy1 = transforms.fs_deriv(self.data, self.cellsize, direction="dy", tap=fs_tap)
+        elif method.upper() == 'FS':
+            dx1 = transforms.fs_deriv(self.data, self.cellsize, direction='dx', tap=fs_tap)
+            dy1 = transforms.fs_deriv(self.data, self.cellsize, direction='dy', tap=fs_tap)
 
-        elif method.lower() == "fourier":
-            dx1 = transforms.fourier_transform(self.data, self.cellsize, trans="dx", order=1, **kwargs)
-            dy1 = transforms.fourier_transform(self.data, self.cellsize, trans="dy", order=1, **kwargs)
+        elif method.lower() == 'fourier':
+            dx1 = transforms.fourier_transform(self.data, self.cellsize, trans='dx', order=1, **kwargs)
+            dy1 = transforms.fourier_transform(self.data, self.cellsize, trans='dy', order=1, **kwargs)
         else:
-            raise ValueError(f"Method {method} has not been recognised.")
+            raise ValueError(f'Method {method} has not been recognised.')
 
-        return Grid(np.sqrt(dx1 * dx1 + dy1 * dy1), self.transform, name=self.name + "_hgm")
+        return Grid(np.sqrt(dx1 * dx1 + dy1 * dy1), self.transform, name=self.name + '_hgm')
 
     # tilt angle
-    def tilt(self, hgm_method="SG", dz_method="isvd", deg=3, win=5, doEdges=True, fs_tap=5, alpha=1):
+    def tilt(self, hgm_method='SG', dz_method='isvd', deg=3, win=5, doEdges=True, fs_tap=5, alpha=1):
         """Calculate the tilt angle of anomalies.
         The alpha option implements the downward continuation of the tilt angle
         as described by Cooper (2016).
@@ -743,91 +748,91 @@ class Grid:
         # horizontal gradient
         hgm_grid = self.hgm(method=hgm_method, deg=deg, win=win, doEdges=doEdges, fs_tap=fs_tap)
         # vertical derivative
-        if dz_method.lower() == "isvd":
+        if dz_method.lower() == 'isvd':
             dz_grid = self.isvd(method=hgm_method, order=1, deg=deg, win=win, doEdges=doEdges, fs_tap=fs_tap)
         else:
-            dz_grid = self.dz(method="fourier", order=1)
+            dz_grid = self.dz(method='fourier', order=1)
         # calculate tilt angle (in degrees)
         output = np.arctan(alpha * dz_grid.data / hgm_grid.data) * 180 / np.pi
 
-        return Grid(output, self.transform, name=self.name + "_tilt")
+        return Grid(output, self.transform, name=self.name + '_tilt')
 
     # total gradient
-    def tg(self, method="SG", dz_method="isvd", deg=3, win=5, doEdges=True, fs_tap=5, **kwargs):
+    def tg(self, method='SG', dz_method='isvd', deg=3, win=5, doEdges=True, fs_tap=5, **kwargs):
         """Calculate the total gradient with various methods."""
         # vertical derivative
-        if dz_method.lower() == "isvd":
+        if dz_method.lower() == 'isvd':
             dz_grid = self.isvd(method=method, order=1, deg=deg, win=win, doEdges=doEdges, fs_tap=fs_tap)
 
         else:
-            dz_grid = self.dz(method="fourier", order=1)
+            dz_grid = self.dz(method='fourier', order=1)
 
         # horizontal derivatives
-        if method.upper() == "SG":
-            dx1 = transforms.savgol_deriv(self.data, self.cellsize, direction="dx", deg=deg, win=win, doEdges=doEdges)
-            dy1 = transforms.savgol_deriv(self.data, self.cellsize, direction="dy", deg=deg, win=win, doEdges=doEdges)
+        if method.upper() == 'SG':
+            dx1 = transforms.savgol_deriv(self.data, self.cellsize, direction='dx', deg=deg, win=win, doEdges=doEdges)
+            dy1 = transforms.savgol_deriv(self.data, self.cellsize, direction='dy', deg=deg, win=win, doEdges=doEdges)
 
-        elif method.upper() == "FS":
-            dx1 = transforms.fs_deriv(self.data, self.cellsize, direction="dx", tap=fs_tap)
-            dy1 = transforms.fs_deriv(self.data, self.cellsize, direction="dy", tap=fs_tap)
+        elif method.upper() == 'FS':
+            dx1 = transforms.fs_deriv(self.data, self.cellsize, direction='dx', tap=fs_tap)
+            dy1 = transforms.fs_deriv(self.data, self.cellsize, direction='dy', tap=fs_tap)
 
-        elif method.lower() == "fourier":
-            dx1 = transforms.fourier_transform(self.data, self.cellsize, trans="dx", order=1, **kwargs)
-            dy1 = transforms.fourier_transform(self.data, self.cellsize, trans="dy", order=1, **kwargs)
+        elif method.lower() == 'fourier':
+            dx1 = transforms.fourier_transform(self.data, self.cellsize, trans='dx', order=1, **kwargs)
+            dy1 = transforms.fourier_transform(self.data, self.cellsize, trans='dy', order=1, **kwargs)
 
         else:
-            raise ValueError(f"Method {method} has not been recognised.")
+            raise ValueError(f'Method {method} has not been recognised.')
 
         # calculate total gradient
         output = np.sqrt(dx1 * dx1 + dy1 * dy1 + dz_grid.data * dz_grid.data)
 
-        return Grid(output, self.transform, name=self.name + "_TG")
+        return Grid(output, self.transform, name=self.name + '_TG')
 
     # local wavenumber
-    def lw(self, method="SG", dz_method="isvd", deg=4, win=5, doEdges=True, fs_tap=5, **kwargs):
+    def lw(self, method='SG', dz_method='isvd', deg=4, win=5, doEdges=True, fs_tap=5, **kwargs):
         """Calculate the local wavenumber with various methods."""
         # vertical derivative
-        if dz_method.lower() == "isvd":
+        if dz_method.lower() == 'isvd':
             dz_grid = self.isvd(method=method, order=1, deg=deg, win=win, doEdges=doEdges, fs_tap=fs_tap)
             dzdz_grid = self.isvd(method=method, order=2, deg=deg, win=win, doEdges=doEdges, fs_tap=fs_tap)
         else:
-            dz_grid = self.dz(method="fourier", order=1)
-            dzdz_grid = self.dz(method="fourier", order=2)
+            dz_grid = self.dz(method='fourier', order=1)
+            dzdz_grid = self.dz(method='fourier', order=2)
 
         # horizontal derivatives
-        if method.upper() == "SG":
-            dx1 = transforms.savgol_deriv(self.data, self.cellsize, direction="dx", deg=deg, win=win, doEdges=doEdges)
-            dy1 = transforms.savgol_deriv(self.data, self.cellsize, direction="dy", deg=deg, win=win, doEdges=doEdges)
+        if method.upper() == 'SG':
+            dx1 = transforms.savgol_deriv(self.data, self.cellsize, direction='dx', deg=deg, win=win, doEdges=doEdges)
+            dy1 = transforms.savgol_deriv(self.data, self.cellsize, direction='dy', deg=deg, win=win, doEdges=doEdges)
             dxdz1 = transforms.savgol_deriv(
-                dz_grid.data, self.cellsize, direction="dx", deg=deg, win=win, doEdges=doEdges
+                dz_grid.data, self.cellsize, direction='dx', deg=deg, win=win, doEdges=doEdges
             )
             dydz1 = transforms.savgol_deriv(
-                dz_grid.data, self.cellsize, direction="dy", deg=deg, win=win, doEdges=doEdges
+                dz_grid.data, self.cellsize, direction='dy', deg=deg, win=win, doEdges=doEdges
             )
-        elif method.upper() == "FS":
-            dx1 = transforms.fs_deriv(self.data, self.cellsize, direction="dx", tap=fs_tap)
-            dy1 = transforms.fs_deriv(self.data, self.cellsize, direction="dy", tap=fs_tap)
-            dxdz1 = transforms.fs_deriv(dz_grid.data, self.cellsize, direction="dx", tap=fs_tap)
-            dydz1 = transforms.fs_deriv(dz_grid.data, self.cellsize, direction="dy", tap=fs_tap)
+        elif method.upper() == 'FS':
+            dx1 = transforms.fs_deriv(self.data, self.cellsize, direction='dx', tap=fs_tap)
+            dy1 = transforms.fs_deriv(self.data, self.cellsize, direction='dy', tap=fs_tap)
+            dxdz1 = transforms.fs_deriv(dz_grid.data, self.cellsize, direction='dx', tap=fs_tap)
+            dydz1 = transforms.fs_deriv(dz_grid.data, self.cellsize, direction='dy', tap=fs_tap)
 
-        elif method.lower() == "fourier":
-            dx1 = transforms.fourier_transform(self.data, self.cellsize, trans="dx", order=1, **kwargs)
-            dy1 = transforms.fourier_transform(self.data, self.cellsize, trans="dy", order=1, **kwargs)
-            dxdz1 = transforms.fourier_transform(dz_grid.data, self.cellsize, trans="dx", order=1, **kwargs)
-            dydz1 = transforms.fourier_transform(dz_grid.data, self.cellsize, trans="dy", order=1, **kwargs)
+        elif method.lower() == 'fourier':
+            dx1 = transforms.fourier_transform(self.data, self.cellsize, trans='dx', order=1, **kwargs)
+            dy1 = transforms.fourier_transform(self.data, self.cellsize, trans='dy', order=1, **kwargs)
+            dxdz1 = transforms.fourier_transform(dz_grid.data, self.cellsize, trans='dx', order=1, **kwargs)
+            dydz1 = transforms.fourier_transform(dz_grid.data, self.cellsize, trans='dy', order=1, **kwargs)
 
         else:
-            raise ValueError(f"Method {method} has not been recognised.")
+            raise ValueError(f'Method {method} has not been recognised.')
 
         # calculate local wavenumber
         output = (dxdz1 * dx1 + dydz1 * dy1 + dzdz_grid.data * dz_grid.data) / (
             dx1 * dx1 + dy1 * dy1 + dz_grid.data * dz_grid.data
         )
 
-        return Grid(output, self.transform, name=self.name + "_LW")
+        return Grid(output, self.transform, name=self.name + '_LW')
 
     # TAHG (Tilt Angle of the Horizontal Gradient)
-    def tahg(self, method="SG", dz_method="isvd", deg=4, win=5, doEdges=True, fs_tap=5, alpha=1, **kwargs):
+    def tahg(self, method='SG', dz_method='isvd', deg=4, win=5, doEdges=True, fs_tap=5, alpha=1, **kwargs):
         """Calculate the tahg transform with various methods.
 
         Reference
@@ -851,7 +856,7 @@ class Grid:
             alpha=alpha,
             **kwargs,
         )
-        grid_tahg.name = self.name + "_TAHG"
+        grid_tahg.name = self.name + '_TAHG'
 
         return grid_tahg
 
@@ -866,9 +871,9 @@ class Grid:
             to add to the observation height (same units as the cell size).
         **kwargs are passed to the Fourier transform.
         """
-        output = transforms.fourier_transform(self.data, self.cellsize, trans="upcont", z=z, **kwargs)
+        output = transforms.fourier_transform(self.data, self.cellsize, trans='upcont', z=z, **kwargs)
 
-        return Grid(output, self.transform, name=self.name + f"_UC{z}")
+        return Grid(output, self.transform, name=self.name + f'_UC{z}')
 
     ## High-pass filter by upward continuation
     def hp_filter_uc(self, z=5000, **kwargs):
@@ -883,10 +888,10 @@ class Grid:
             to increase the effect of the filter.
         **kwargs are passed to the Fourier transform.
         """
-        upCont1 = transforms.fourier_transform(self.data, self.cellsize, trans="upcont", z=z, **kwargs)
+        upCont1 = transforms.fourier_transform(self.data, self.cellsize, trans='upcont', z=z, **kwargs)
         output = self.data - upCont1
 
-        return Grid(output, self.transform, name=self.name + f"_HPUC{z}")
+        return Grid(output, self.transform, name=self.name + f'_HPUC{z}')
 
 
 # ==============================================================================
@@ -908,7 +913,7 @@ def from_dataset(dataset, band=1, crs=None, name=None, nodata_value=None, scale_
     if crs is None and dataset.crs is not None:
         if dataset.crs.is_epsg_code:
             # get the EPSG code
-            crs = dataset.crs["init"]
+            crs = dataset.crs['init']
         else:
             # get a PROJ.4 string
             crs = dataset.crs.to_string()
@@ -929,8 +934,8 @@ def from_array(
     cellsize=100,
     y_cellsize=100,
     crs=None,
-    name="Unknown",
-    filename="Unknown",
+    name='Unknown',
+    filename='Unknown',
     nodata_value=None,
 ):
     """
@@ -938,18 +943,18 @@ def from_array(
     Used by interpies.open().
     """
     # name
-    if name == "Unknown":
-        if filename != "Unknown":
+    if name == 'Unknown':
+        if filename != 'Unknown':
             name = os.path.basename(os.path.splitext(filename)[0])
         else:
-            name = "Unknown"
-            filename = "Unknown"
+            name = 'Unknown'
+            filename = 'Unknown'
 
     # nodata value
     if nodata_value is None:
         nodata_value = np.nan
 
     # transform
-    transf = rio_transform.from_origin(west, north, cellsize, y_cellsize)
+    transf = rasterio.transform.from_origin(west, north, cellsize, y_cellsize)
 
     return Grid(array, transf, name=name, nodata_value=nodata_value, filename=filename, crs=crs)

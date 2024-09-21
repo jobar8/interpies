@@ -5,11 +5,14 @@ transforms.py:
     Functions for applying derivatives, transforms and filters to grids.
 
 @author: Joseph Barraud
-Geophysics Labs, 2017
+Geophysics Labs, 2017-2024
 """
 
 # Import numpy and scipy
+from typing import overload
+
 import numpy as np
+from numpy.typing import ArrayLike
 
 # from scipy import interpolate
 from scipy import ndimage as nd
@@ -39,7 +42,7 @@ def replace_edges(data, ncells=1):
     with reflection padding. Useful to correct edge effects due to convolution
     filters.
     """
-    return np.pad(data[ncells:-ncells, ncells:-ncells], ncells, mode="reflect", reflect_type="odd")
+    return np.pad(data[ncells:-ncells, ncells:-ncells], ncells, mode='reflect', reflect_type='odd')
 
 
 def fill_nodata(data, invalid=None):
@@ -81,7 +84,11 @@ def simple_resample(data, sampling=2):
     return np.flipud(np.flipud(data)[::sampling, ::sampling])
 
 
-def find_trend(X, data, degree=1, returnModel=False):
+@overload
+def find_trend(point_coords: ArrayLike, data: ArrayLike, degree: int = 1, returnModel: bool = True) -> Pipeline: ...
+@overload
+def find_trend(point_coords: ArrayLike, data: ArrayLike, degree: int = 1, returnModel: bool = False) -> ArrayLike: ...
+def find_trend(point_coords, data, degree=1, returnModel=False):
     """
     Calculate trend in 2D data. The fit is made with a polynomial function of
     chosen degree. A least-square method is used for the fit.
@@ -91,16 +98,13 @@ def find_trend(X, data, degree=1, returnModel=False):
     mask = np.isnan(data)
 
     # Fit data with a polynomial surface (or a plane if degree=1)
-    model = Pipeline([("poly", PolynomialFeatures(degree)), ("linear", LinearRegression())])
-    model.fit(X[~mask.flatten(), :], data[~mask])
-
-    # calculate resulting trend
-    trend = model.predict(X).reshape((nrows, ncols))
+    model = Pipeline([('poly', PolynomialFeatures(degree)), ('linear', LinearRegression())])
+    model.fit(point_coords[~mask.flatten(), :], data[~mask])
 
     if returnModel:
         return model
-    else:
-        return trend
+    # calculate resulting trend
+    return model.predict(point_coords).reshape((nrows, ncols))
 
 
 def stats(data):
@@ -191,14 +195,14 @@ def savgol2d(degree, window_size):
         the others).
     """
     if not isinstance(degree, int) or degree < 0:
-        raise ValueError("Degree of polynomial must be a positive integer")
+        raise ValueError('Degree of polynomial must be a positive integer')
     if not isinstance(window_size, int) or window_size % 2 == 0 or window_size < 0:
-        raise ValueError("Window size must be a positive odd integer")
+        raise ValueError('Window size must be a positive odd integer')
     if window_size**2 < ((degree + 2) * (degree + 1)) / 2.0:
-        raise ValueError("Degree too high for window size")
+        raise ValueError('Degree too high for window size')
 
     # create dictionary of exponents
-    exps = [{"x": k - n, "y": n} for k in range(degree + 1) for n in range(k + 1)]
+    exps = [{'x': k - n, 'y': n} for k in range(degree + 1) for n in range(k + 1)]
 
     # coordinates of points in window
     n = np.arange(-(window_size - 1) // 2, (window_size - 1) // 2 + 1, dtype=np.float64)
@@ -210,7 +214,7 @@ def savgol2d(degree, window_size):
     # array
     A = np.empty((window_size**2, len(exps)))
     for i, exp in enumerate(exps):
-        A[:, i] = (dx ** exp["x"]) * (dy ** exp["y"])
+        A[:, i] = (dx ** exp['x']) * (dy ** exp['y'])
 
     return np.linalg.pinv(A)
 
@@ -219,11 +223,11 @@ def savgol2d(degree, window_size):
 # Dictionary to associate types of derivative with Savitzky-Golay coeficients
 # and parameters
 sg_dicts = {}
-sg_dicts["dx"] = {"index": 1, "factor": 1, "exponent": 1, "flipfunc": np.fliplr}
-sg_dicts["dy"] = {"index": 2, "factor": -1, "exponent": 1, "flipfunc": np.flipud}
-sg_dicts["dx2"] = {"index": 3, "factor": 2, "exponent": 2, "flipfunc": np.fliplr}
-sg_dicts["dxdy"] = {"index": 4, "factor": -1, "exponent": 2, "flipfunc": lambda x: np.flipud(np.fliplr(x))}
-sg_dicts["dy2"] = {"index": 5, "factor": 2, "exponent": 2, "flipfunc": np.flipud}
+sg_dicts['dx'] = {'index': 1, 'factor': 1, 'exponent': 1, 'flipfunc': np.fliplr}
+sg_dicts['dy'] = {'index': 2, 'factor': -1, 'exponent': 1, 'flipfunc': np.flipud}
+sg_dicts['dx2'] = {'index': 3, 'factor': 2, 'exponent': 2, 'flipfunc': np.fliplr}
+sg_dicts['dxdy'] = {'index': 4, 'factor': -1, 'exponent': 2, 'flipfunc': lambda x: np.flipud(np.fliplr(x))}
+sg_dicts['dy2'] = {'index': 5, 'factor': 2, 'exponent': 2, 'flipfunc': np.flipud}
 
 
 def savgol_smooth(data, deg=3, win=5, doEdges=False):
@@ -254,7 +258,7 @@ def savgol_smooth(data, deg=3, win=5, doEdges=False):
     sg_kernel = sg_coeffs[0].reshape((win, win))
 
     # calculate filtered result by convolution
-    convResult = signal.convolve2d(data, sg_kernel, mode="same", boundary="symm")
+    convResult = signal.convolve2d(data, sg_kernel, mode='same', boundary='symm')
 
     # fill edges
     if doEdges:
@@ -263,7 +267,7 @@ def savgol_smooth(data, deg=3, win=5, doEdges=False):
     return convResult
 
 
-def savgol_deriv(data, cellsize, direction="dx", deg=3, win=5, doEdges=True):
+def savgol_deriv(data, cellsize, direction='dx', deg=3, win=5, doEdges=True):
     """
     Calculate horizontal derivatives by convolution with a Savitzky-Golay (SG)
     filter. It works even if NaNs are present in the data.
@@ -290,17 +294,17 @@ def savgol_deriv(data, cellsize, direction="dx", deg=3, win=5, doEdges=True):
         by reflection padding. Useful to correct bad edge effects.
     """
     sg_dict = sg_dicts[direction]
-    index = sg_dict["index"]
-    factor = sg_dict["factor"]
-    exponent = sg_dict["exponent"]
-    flipfunc = sg_dict["flipfunc"]
+    index = sg_dict['index']
+    factor = sg_dict['factor']
+    exponent = sg_dict['exponent']
+    flipfunc = sg_dict['flipfunc']
 
     # retrieve Savitzky-Golay coeficients and make kernel
     sg_coeffs = savgol2d(deg, win)
     sg_kernel = flipfunc(sg_coeffs[index].reshape((win, win)))  # flip for convolution
 
     # calculate derivative by convolution
-    convResult = factor * signal.convolve2d(data, sg_kernel, mode="same", boundary="symm") / cellsize**exponent
+    convResult = factor * signal.convolve2d(data, sg_kernel, mode='same', boundary='symm') / cellsize**exponent
     # fill edges
     if doEdges:
         convResult = replace_edges(convResult, (win - 1) // 2)
@@ -338,7 +342,7 @@ def savgol_deriv(data, cellsize, direction="dx", deg=3, win=5, doEdges=True):
 
 
 def _conv1(a, h):
-    return np.convolve(a, h, mode="same")
+    return np.convolve(a, h, mode='same')
 
 
 def _conv2(h1, h2, A):
@@ -351,21 +355,21 @@ def _conv2(h1, h2, A):
     return result
 
 
-def fs_coefficients(tap=5, direction="dx"):
+def fs_coefficients(tap=5, direction='dx'):
     """
     This function returns the 5-tap or 7-tap coefficients given by Farid
     and Simoncelli (2004).
     """
 
     if tap == 5:
-        if direction in ["dx", "dy", "dxdy"]:
+        if direction in ['dx', 'dy', 'dxdy']:
             # 5-tap 1st derivative coefficients.  These are optimal if you are just
             # seeking the 1st deriavtives.
             p = np.array([0.037659, 0.249153, 0.426375, 0.249153, 0.037659])
             d1 = np.array([0.109604, 0.276691, 0.000000, -0.276691, -0.109604])
             d2 = 0
 
-        elif direction in ["dx2", "dy2", "dxdy"]:
+        elif direction in ['dx2', 'dy2', 'dxdy']:
             # 5-tap 2nd derivative coefficients. The associated 1st derivative
             # coefficients are not quite as optimal as the ones above but are
             # consistent with the 2nd derivative interpolator p and thus are
@@ -381,12 +385,12 @@ def fs_coefficients(tap=5, direction="dx"):
         d2 = np.array([0.055336, 0.137778, -0.056554, -0.273118, -0.056554, 0.137778, 0.055336])
 
     else:
-        raise ValueError("The tap value must be either 5 or 7.")
+        raise ValueError('The tap value must be either 5 or 7.')
 
     return p, d1, d2
 
 
-def fs_deriv(data, cellsize, direction="dx", tap=5):
+def fs_deriv(data, cellsize, direction='dx', tap=5):
     """
     Compute 1st or 2nd derivative of an array using the method of Farid and
     Simoncelli (2004).
@@ -411,15 +415,15 @@ def fs_deriv(data, cellsize, direction="dx", tap=5):
     p, d1, d2 = fs_coefficients(tap, direction)
 
     # Compute derivatives
-    if direction == "dx":
+    if direction == 'dx':
         result = _conv2(p, d1, data) / cellsize
-    elif direction == "dy":
+    elif direction == 'dy':
         result = -1 * _conv2(d1, p, data) / cellsize  # origin is in lower left corner
-    elif direction == "dx2":
+    elif direction == 'dx2':
         result = _conv2(p, d2, data) / cellsize / cellsize
-    elif direction == "dy2":
+    elif direction == 'dy2':
         result = _conv2(d2, p, data) / cellsize / cellsize
-    elif direction == "dxdy":
+    elif direction == 'dxdy':
         result = _conv2(p, d1, data) / cellsize
         result = -1 * _conv2(d1, p, result) / cellsize
 
@@ -466,7 +470,7 @@ def next_pow2(x):
 
 
 # Padding functions
-def pad_next_pow2(data, mode="reflect", reflect_type="odd", smooth=False, end_values=0):
+def pad_next_pow2(data, mode='reflect', reflect_type='odd', smooth=False, end_values=0):
     """
     Pad to a square grid with 2**n number of cells in each dimension,
     with 2**n being the next power of 2 relative to the size of the input array.
@@ -510,7 +514,7 @@ def pad_next_pow2(data, mode="reflect", reflect_type="odd", smooth=False, end_va
     c_remainder = np.mod((npts - ncols), 2)
 
     # apply padding
-    if mode in ["reflect", "symmetric"]:
+    if mode in ['reflect', 'symmetric']:
         padded = np.pad(
             data, ((rdiff, rdiff + r_remainder), (cdiff, cdiff + c_remainder)), mode=mode, reflect_type=reflect_type
         )
@@ -521,15 +525,15 @@ def pad_next_pow2(data, mode="reflect", reflect_type="odd", smooth=False, end_va
 
     if smooth:
         for i in range(-2, 3):
-            padded[:, cdiff + i] = smoothing_average(padded, cdiff + i, axis="cols")
-            padded[:, ncols - 1 + cdiff + i] = smoothing_average(padded, ncols - 1 + cdiff + i, axis="cols")
-            padded[rdiff + i, :] = smoothing_average(padded, rdiff + i, axis="rows")
-            padded[nrows - 1 + rdiff + i, :] = smoothing_average(padded, nrows - 1 + rdiff + i, axis="rows")
+            padded[:, cdiff + i] = smoothing_average(padded, cdiff + i, axis='cols')
+            padded[:, ncols - 1 + cdiff + i] = smoothing_average(padded, ncols - 1 + cdiff + i, axis='cols')
+            padded[rdiff + i, :] = smoothing_average(padded, rdiff + i, axis='rows')
+            padded[nrows - 1 + rdiff + i, :] = smoothing_average(padded, nrows - 1 + rdiff + i, axis='rows')
 
     return padded
 
 
-def pad_full(data, mode="reflect", reflect_type="odd"):
+def pad_full(data, mode='reflect', reflect_type='odd'):
     """
     Combine tiling and padding.
     Extend an array first by tiling symmetrical copies of the input
@@ -559,18 +563,18 @@ def pad_full(data, mode="reflect", reflect_type="odd"):
     nrows, ncols = data.shape
 
     # first 3x3 padding
-    data_pad = np.pad(data, ((nrows, nrows), (ncols, ncols)), mode="reflect", reflect_type=reflect_type)
+    data_pad = np.pad(data, ((nrows, nrows), (ncols, ncols)), mode='reflect', reflect_type=reflect_type)
 
     # additional padding to size = next power of 2
-    if mode == "reflect":
-        data_pad = pad_next_pow2(data_pad, mode="reflect", reflect_type=reflect_type)
+    if mode == 'reflect':
+        data_pad = pad_next_pow2(data_pad, mode='reflect', reflect_type=reflect_type)
     else:
-        data_pad = pad_next_pow2(data_pad, mode="linear_ramp", end_values=int(data_pad.mean()))  # linear ramp
+        data_pad = pad_next_pow2(data_pad, mode='linear_ramp', end_values=int(data_pad.mean()))  # linear ramp
 
     return data_pad
 
 
-def pad_3x3(data, mode="reflect", reflect_type="odd"):
+def pad_3x3(data, mode='reflect', reflect_type='odd'):
     """
     Extend a matrix by tiling symmetrical copies of the input
     Return a 3*nrows x 3*ncols array
@@ -578,11 +582,11 @@ def pad_3x3(data, mode="reflect", reflect_type="odd"):
     nrows, ncols = data.shape
 
     # 3x3 padding
-    if mode == "reflect":
+    if mode == 'reflect':
         data_pad = np.pad(data, ((nrows, nrows), (ncols, ncols)), mode=mode, reflect_type=reflect_type)
     else:
         data_pad = np.pad(
-            data, ((nrows, nrows), (ncols, ncols)), mode="linear_ramp", end_values=int(np.nanmean(data))
+            data, ((nrows, nrows), (ncols, ncols)), mode='linear_ramp', end_values=int(np.nanmean(data))
         )  # linear ramp
 
     return data_pad
@@ -621,13 +625,13 @@ def unpad_full(data, nrows, ncols):
 def fourier_transform(
     data,
     cellsize,
-    trans="dx",
+    trans='dx',
     order=1,
     doEdges=True,
     ncells=2,
-    padding="full",
-    mode="reflect",
-    reflect_type="odd",
+    padding='full',
+    mode='reflect',
+    reflect_type='odd',
     eps=1e-6,
     z=500,
 ):
@@ -685,13 +689,13 @@ def fourier_transform(
 
     # Apply padding
     padding = padding.lower()
-    if padding == "full":
+    if padding == 'full':
         # initial 3x3 padding (reflect) + ramp or reflection to next power of 2
         data_pad = pad_full(fill_nodata(data), mode=mode, reflect_type=reflect_type)
-    elif padding == "3x3":
+    elif padding == '3x3':
         # 3x3 reflection padding
         data_pad = pad_3x3(fill_nodata(data), mode=mode, reflect_type=reflect_type)
-    elif padding == "pow2":
+    elif padding == 'pow2':
         # ramp or reflection to next power of 2
         data_pad = pad_next_pow2(
             fill_nodata(data), mode=mode, reflect_type=reflect_type, smooth=True, end_values=int(np.nanmean(data))
@@ -706,28 +710,28 @@ def fourier_transform(
 
     # Apply transformation on padded data
     trans = trans.lower()
-    if trans == "dx":
+    if trans == 'dx':
         fouTrans = np.real(np.fft.ifft2(np.fft.fft2(data_pad) * (1j * kx) ** order))
-    elif trans == "dy":
+    elif trans == 'dy':
         fouTrans = np.real(np.fft.ifft2(np.fft.fft2(data_pad) * (1j * ky) ** order))
-    elif trans == "dxdy":
+    elif trans == 'dxdy':
         fouTrans = np.real(np.fft.ifft2((np.fft.fft2(data_pad) * (1j * ky) ** order) * (1j * kx) ** order))
-    elif trans == "dz":
+    elif trans == 'dz':
         fouTrans = np.real(np.fft.ifft2(np.fft.fft2(data_pad) * k**order))
-    elif trans == "vi":
+    elif trans == 'vi':
         # remove zeros in k to avoid division by zero error
         k[k == 0] = eps
         fouTrans = np.real(np.fft.ifft2(np.fft.fft2(data_pad) * k ** (-1 * order)))
         fouTrans = fouTrans - np.mean(fouTrans)
-    elif trans == "upcont":
+    elif trans == 'upcont':
         fouTrans = np.real(np.fft.ifft2(np.fft.fft2(data_pad) * (np.exp(-z * k))))
 
     # remove padding
-    if padding == "full":
+    if padding == 'full':
         fouTrans = unpad_full(fouTrans, nrows, ncols)
-    elif padding == "3x3":
+    elif padding == '3x3':
         fouTrans = unpad_3x3(fouTrans)
-    elif padding == "pow2":
+    elif padding == 'pow2':
         fouTrans = unpad_next_pow2(fouTrans, nrows, ncols)
 
     # fill edges
@@ -743,7 +747,7 @@ def fourier_transform(
 # ===============================================================================
 # ISVD (vertical derivative)
 # ===============================================================================
-def isvd(data, cellsize, method="SG", order=1, deg=4, win=5, fs_tap=5, doEdges=True, **kwargs):
+def isvd(data, cellsize, method='SG', order=1, deg=4, win=5, fs_tap=5, doEdges=True, **kwargs):
     """Vertical derivatives with the ISVD (integrated second
     vertical derivative) method.
 
@@ -783,7 +787,7 @@ def isvd(data, cellsize, method="SG", order=1, deg=4, win=5, fs_tap=5, doEdges=T
         by enhanced horizontal derivative method. Geophys. Prospect. 49, 40–58.
     """
     if order not in [1, 2]:
-        raise ValueError("Order must be 1 or 2.")
+        raise ValueError('Order must be 1 or 2.')
 
     # save array mask before calculation
     mask = np.isnan(data)
@@ -793,23 +797,23 @@ def isvd(data, cellsize, method="SG", order=1, deg=4, win=5, fs_tap=5, doEdges=T
 
     if order == 1:
         # vertical integral
-        data = fourier_transform(data, cellsize, trans="vi", order=1)
+        data = fourier_transform(data, cellsize, trans='vi', order=1)
         # smoothing
         if kwargs:
-            data = gauss(data, kwargs["sigma"])
+            data = gauss(data, kwargs['sigma'])
 
     # second derivatives
-    if method == "SG":
-        data_dx2 = savgol_deriv(data, cellsize, direction="dx2", deg=deg, win=win, doEdges=doEdges)
-        data_dy2 = savgol_deriv(data, cellsize, direction="dy2", deg=deg, win=win, doEdges=doEdges)
+    if method == 'SG':
+        data_dx2 = savgol_deriv(data, cellsize, direction='dx2', deg=deg, win=win, doEdges=doEdges)
+        data_dy2 = savgol_deriv(data, cellsize, direction='dy2', deg=deg, win=win, doEdges=doEdges)
 
-    elif method == "FS":
-        data_dx2 = fs_deriv(data, cellsize, direction="dx2", tap=fs_tap)
-        data_dy2 = fs_deriv(data, cellsize, direction="dy2", tap=fs_tap)
+    elif method == 'FS':
+        data_dx2 = fs_deriv(data, cellsize, direction='dx2', tap=fs_tap)
+        data_dy2 = fs_deriv(data, cellsize, direction='dy2', tap=fs_tap)
 
-    elif method == "fourier":
-        data_dx2 = fourier_transform(data, cellsize, trans="dx", order=2, **kwargs)
-        data_dy2 = fourier_transform(data, cellsize, trans="dy", order=2, **kwargs)
+    elif method == 'fourier':
+        data_dx2 = fourier_transform(data, cellsize, trans='dx', order=2, **kwargs)
+        data_dy2 = fourier_transform(data, cellsize, trans='dy', order=2, **kwargs)
 
     # return DZ using the Laplace equation
     data_dz = -1 * (data_dx2 + data_dy2)
@@ -831,8 +835,8 @@ def gauss(data, sigma=1):
     return filters.gaussian_filter(data, sigma)
 
 
-def smoothing_average(V, i, axis="cols"):
-    if axis == "cols":
+def smoothing_average(V, i, axis='cols'):
+    if axis == 'cols':
         Vs = (V[:, i - 2] + V[:, i - 1] + V[:, i] + V[:, i + 1] + V[:, i + 2]) / 5.0
     else:
         Vs = (V[i - 2, :] + V[i - 1, :] + V[i, :] + V[i + 1, :] + V[i + 2, :]) / 5.0
@@ -841,6 +845,6 @@ def smoothing_average(V, i, axis="cols"):
 
 def laplacian(data, cellsize):
     conv_filter = np.array([[0, -1, 0], [-1, 4, -1], [0, -1, 0]])
-    convResult = signal.convolve2d(data, conv_filter, mode="valid", boundary="symm") / cellsize
+    convResult = signal.convolve2d(data, conv_filter, mode='valid', boundary='symm') / cellsize
 
     return convResult

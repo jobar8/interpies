@@ -1679,15 +1679,15 @@ rainbow_bgyr_35_85_c73 = [
 
 # dictionary making the correspondence between names and colormap data
 datad = {
-    "geosoft": clra128_data,
-    "clra128": clra128_data,
-    "clra32": clra32_data,
-    "clrb128": clrb128_data,
-    "parula": parula_data,
-    "win256": win256_data,
-    "cet_rainbow": rainbow_bgyr_35_85_c73,
+    'geosoft': clra128_data,
+    'clra128': clra128_data,
+    'clra32': clra32_data,
+    'clrb128': clrb128_data,
+    'parula': parula_data,
+    'win256': win256_data,
+    'cet_rainbow': rainbow_bgyr_35_85_c73,
 }
 
 ### main
-if __name__ == "__main__":
-    geosoft_cm = LinearSegmentedColormap.from_list("geosoft", clra128_data)
+if __name__ == '__main__':
+    geosoft_cm = LinearSegmentedColormap.from_list('geosoft', clra128_data)
