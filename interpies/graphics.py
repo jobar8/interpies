@@ -53,26 +53,21 @@ def make_colormap(table, name='CustomMap'):
     return new_cmap
 
 
-def cmap_to_array(cmap, n=256):
+def cmap_to_array(cmap: str | mcolors.Colormap, n: int = 256):
     """
     Return a nx3 array of RGB values that defines a colormap or generate it from
     a colormap object.
+
     Input is colormap name (if recognised) or matplotlib cmap object.
     """
-    # first assume cmap is a string
-    if cmap in icolors.datad:  # additional colormaps in interpies.colors module
-        cm_array = np.asarray(icolors.datad[cmap])
-    elif cmap in cm.cmap_d:  # matplotlib colormaps + the new ones (viridis, inferno, etc.)
-        cmap = cm.cmap_d[cmap]
-        cm_array = cmap(np.linspace(0, 1, n))[:, :3]
-    # now assume cmap is a colormap object
+    if isinstance(cmap, str):
+        if cmap in icolors.datad:  # additional colormaps in interpies.colors module
+            return np.asarray(icolors.datad[cmap])
+        cmap = matplotlib.colormaps[cmap]
+    if isinstance(cmap, mcolors.Colormap):
+        return cmap(np.linspace(0, 1, n))[:, :3]  # remove alpha column
     else:
-        try:
-            cm_array = cmap(np.linspace(0, 1, n))[:, :3]  # remove alpha column
-        except:
-            raise ValueError(f'Colormap {cmap} has not been recognised')
-
-    return cm_array
+        raise ValueError(f'Colormap {cmap} has not been recognised')
 
 
 def load_cmap(cmap='geosoft'):
