@@ -122,7 +122,7 @@ def grid_to_points(xll, yll, cellsize, nrows, ncols, flipy=True):
     return np.column_stack((xGrid.flatten(), yGrid.flatten()))
 
 
-def warp(
+def warp(  # noqa: PLR0913
     inputFile,
     outputFile,
     xsize,

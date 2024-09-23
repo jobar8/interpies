@@ -287,7 +287,7 @@ def alpha_blend(rgb, intensity, alpha=0.7):
     return alpha * rgb + (1 - alpha) * intensity
 
 
-def imshow_hs(  # noqa: PLR0913
+def imshow_hs(  # noqa: PLR0912, PLR0913, PLR0915
     source,
     ax=None,
     cmap='geosoft',
