@@ -36,9 +36,7 @@ jobs:
         cache-dependency-glob: "**/pyproject.toml"
 
     - name: Install the project
-      run: |
-        uv pip install gdal==$(gdal-config --version)
-        uv sync --all-extras --dev
+      run: uv sync --all-extras --dev
 
     - name: Run tests
       run: uv run pytest tests
