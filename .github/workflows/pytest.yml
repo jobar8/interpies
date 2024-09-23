@@ -36,7 +36,7 @@ jobs:
         cache-dependency-glob: "**/pyproject.toml"
 
     - name: Install the project
-      run: uv sync --all-extras --dev
+      run: uv sync --extra ci
 
     - name: Run tests
       run: uv run pytest tests

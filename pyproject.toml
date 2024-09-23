@@ -7,7 +7,7 @@ name = "interpies"
 version = "0.3.1"
 description = "A collection of functions for reading, displaying, transforming and analyzing geophysical data."
 readme = "README.md"
-authors = [{ name = "Joseph Barraud"}]
+authors = [{ name = "Joseph Barraud" }]
 keywords = ["geophysics raster gdal gravimetry magnetometry seismic"]
 requires-python = ">=3.10"
 classifiers = [
@@ -32,13 +32,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+ci = ["pytest>=8.3.3", "ruff>=0.6.4"]
 dev = [
     "hvplot>=0.10.0",
     "ipykernel>=6.29.5",
-    "pytest>=8.3.3",
     "seaborn>=0.13.2",
     "jupyter_bokeh",
-    "ruff>=0.6.4",
 ]
 
 [project.urls]
