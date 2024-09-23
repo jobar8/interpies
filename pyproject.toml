@@ -24,7 +24,7 @@ classifiers = [
 dependencies = [
     "matplotlib",
     "numpy",
-    "gdal==3.8.4",
+    "gdal==3.6.4",
     "rasterio>=1.1",
     "scikit-image",
     "scikit-learn",
