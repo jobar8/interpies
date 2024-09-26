@@ -14,8 +14,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 # import GDAL modules
-from osgeo import ogr, osr
-from osgeo import gdal
+from osgeo import gdal, ogr, osr
 
 gdal.UseExceptions()  # Enable exceptions
 
