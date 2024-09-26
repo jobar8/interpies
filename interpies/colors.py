@@ -10,7 +10,7 @@ colors.py:
         Originally recovered from: https://eisbox.net/blog/2011/12/16/windows-8-bit-256-color-palette/
 
 @author: Joseph Barraud
-Geophysics Labs, 2017
+Geophysics Labs, 2017-2024
 """
 
 from matplotlib.colors import LinearSegmentedColormap

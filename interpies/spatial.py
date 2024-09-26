@@ -5,19 +5,22 @@ spatial.py:
     Functions to manipulate spatial data (grids and points)
 
 @author: Joseph Barraud
-Geophysics Labs, 2017
+Geophysics Labs, 2017-2024
 """
 
 import subprocess
 
-# import numpy
 import numpy as np
+from numpy.typing import ArrayLike
 
 # import GDAL modules
 from osgeo import ogr, osr
+from osgeo import gdal
+
+gdal.UseExceptions()  # Enable exceptions
 
 
-def project_points(inputPoints, s_srs=4326, t_srs=23029):
+def project_points(inputPoints: ArrayLike, s_srs: int = 4326, t_srs: int = 23029):
     """
     Reproject a set of points from one spatial reference to another.
 
@@ -46,8 +49,8 @@ def project_points(inputPoints, s_srs=4326, t_srs=23029):
 
     # Loop through the points
     outputPoints = []
-    for XY in inputPoints:
-        point = ogr.CreateGeometryFromWkt('POINT ({} {})'.format(*XY))
+    for xy in inputPoints:
+        point = ogr.CreateGeometryFromWkt('POINT ({} {})'.format(*xy))
         point.Transform(coordTrans)
         outputPoints.append([point.GetX(), point.GetY()])
 
