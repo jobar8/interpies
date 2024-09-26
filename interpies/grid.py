@@ -137,8 +137,8 @@ class Grid:
         Clip grid.
         """
         rows, cols = rasterio.transform.rowcol(self.transform, [xmin, xmax], [ymin, ymax])
-        rows = np.clip(rows, 0, None)
-        cols = np.clip(cols, 0, None)
+        rows = np.asarray(np.clip(rows, 0, None), dtype=np.int64)
+        cols = np.asarray(np.clip(cols, 0, None), dtype=np.int64)
         data_selection = self.data[rows[1] : rows[0] + 1, cols[0] : cols[1] + 1]
 
         # new origin
