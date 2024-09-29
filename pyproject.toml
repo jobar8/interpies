@@ -32,7 +32,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-ci = ["pytest>=8.3.3", "ruff>=0.6.4"]
+ci = ["pytest>=8.3.3", "pytest-cov>=5.0.0", "ruff>=0.6.4"]
+
 dev = [
     "hvplot>=0.10.0",
     "ipykernel>=6.29.5",
@@ -43,5 +44,5 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/jobar8/interpies"
 
-[tool.hatch.version]
-path = "interpies/__init__.py"
+[tool.pytest.ini_options]
+addopts = "--cov=interpies"
